@@ -6,14 +6,16 @@ from typing import List
 from src.model import Population, Solution
 
 
-def select_tournament(population: Population) -> Population:
-    TOURNAMENT_SIZE = 3
+def select_tournament(population: Population, tournament_size=3) -> Population:
+    if len(population.members) < 1:
+        raise ValueError(f"Population size lower than 1! Actual: {len(population.members)}")
+
     candidates = copy.deepcopy(population)
     offspring_population = Population(members=[], fitness_fn=population.fitness_fn, mutation_fn=population.mutation_fn,
                                       crossover_fn=population.crossover_fn)
 
     for _ in range(len(population.members)):
-        picked: List[Solution] = random.choices(candidates.members, k=TOURNAMENT_SIZE)
+        picked: List[Solution] = random.choices(candidates.members, k=tournament_size)
         max_fitness = 0
         winner = None
         for el in picked:
