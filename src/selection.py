@@ -10,6 +10,11 @@ def select_tournament(population: Population, tournament_size=3) -> Population:
     if len(population.members) < 1:
         raise ValueError(f"Population size lower than 1! Actual: {len(population.members)}")
 
+    if all(el.fitness == 0 for el in population.members):
+        logging.debug(
+            "Population chosen for selection has all fitness values equal to 0. Returning original population...")
+        return copy.deepcopy(population)
+
     candidates = copy.deepcopy(population)
     offspring_population = Population(members=[], fitness_fn=population.fitness_fn, mutation_fn=population.mutation_fn,
                                       crossover_fn=population.crossover_fn)
