@@ -4,11 +4,11 @@ import random
 from typing import Tuple, Optional, List
 
 from src.model import Population, Solution
+from src.mutation import mutate
 from src.selection import select_tournament
 
 POPULATION_SIZE = 50
 STR_LEN = 100
-P_MUTATION = 0.01
 MAX_ITERS = 1000
 
 logging.basicConfig(level=logging.DEBUG)
@@ -60,19 +60,6 @@ def crossover_two_point(a: Solution, b: Solution) -> Optional[Tuple[Solution, So
         a, b = crossover_single_point(a, b)
     logging.debug(f"Crossover done, results: {a}, {b}... ")
     return a, b
-
-
-def mutate(sequence: str) -> str:
-    sequence = copy.deepcopy(sequence)
-    result = ""
-    for gene in sequence:
-        if random.random() < P_MUTATION:
-            # flip the bit
-            result += str(1 - int(gene))
-            logging.debug(f"Mutation probability hit! Mutating gene: {sequence}...")
-        else:
-            result += gene
-    return result
 
 
 if __name__ == "__main__":
