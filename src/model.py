@@ -12,7 +12,7 @@ class Solution:
 class Population:
     members: List[Solution]
     fitness_fn: Callable
-    mutation_fn: Callable
+    mutation_fn: Any  # Cannot type to MutationMethod because of circular imports
     crossover_fn: Any  # Cannot type to CrossoverMethod because of circular imports
 
     def refresh_fitness(self):
