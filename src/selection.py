@@ -50,3 +50,29 @@ def select_roulette(population: Population) -> List[Solution]:
     offspring_population = random.choices(population.members, weights=selection_probs, k=len(population.members))
     logging.debug(f"Returning population after selection: {offspring_population}")
     return offspring_population
+
+
+def select_rank(population: Population) -> List[Solution]:
+    _check_population_length(population)
+    logging.debug(f"Performing rank-based selection from population: {population.members}")
+
+    if all(el.fitness == 0 for el in population.members):
+        logging.debug(f"Rank-based selection was not possible, all fitness are zero. Returning parent population...")
+        return copy.deepcopy(population.members)
+
+    members_ordered_by_fitness = sorted(population.members, key=lambda el: el.fitness)
+    logging.debug(f"Population members ordered by fitness values: {members_ordered_by_fitness}")
+
+    sum_rank = len(members_ordered_by_fitness) * (len(members_ordered_by_fitness) + 1) // 2
+    logging.debug(f"Rank sum is: {sum_rank}")
+
+    selection_probs = [(idx + 1) / sum_rank for idx, el in enumerate(members_ordered_by_fitness)]
+    logging.debug(f"Rank weights for population are: {selection_probs}")
+
+    offspring_population = random.choices(members_ordered_by_fitness, weights=selection_probs,
+                                          k=len(members_ordered_by_fitness))
+    logging.debug(f"Returning population after selection: {offspring_population}")
+    return offspring_population
+
+# TODO stochastic universal sampling selection
+
