@@ -3,7 +3,7 @@ import random
 from multiprocessing import Pool
 from typing import List, Tuple
 
-from src.crossover import crossover_two_point
+from src.enums import CrossoverMethod
 from src.model import Population, Solution
 from src.mutation import mutate
 from src.selection import select_tournament
@@ -14,7 +14,7 @@ MAX_ITERS = 100
 N_PROCESSES = 4
 TIMEOUT_SECONDS = 120
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.DEBUG)
 
 
 def generate_initial_population(size: int = POPULATION_SIZE) -> Population:
@@ -24,7 +24,7 @@ def generate_initial_population(size: int = POPULATION_SIZE) -> Population:
         for _ in range(STR_LEN):
             el = el + str(random.randint(0, 1))
         result.append(Solution(chromosome=el))
-    p = Population(members=result, fitness_fn=fitness, mutation_fn=mutate, crossover_fn=crossover_two_point)
+    p = Population(members=result, fitness_fn=fitness, mutation_fn=mutate, crossover_fn=CrossoverMethod.UNIFORM)
     p.refresh_fitness()
     return p
 

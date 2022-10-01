@@ -1,10 +1,10 @@
 from dataclasses import dataclass
-from typing import List, Callable, Tuple
+from typing import List, Callable, Tuple, Any
 
 
 @dataclass
 class Solution:
-    chromosome: str  # TODO make generic
+    chromosome: str = ""  # TODO make generic
     fitness: float = 0
 
 
@@ -13,7 +13,7 @@ class Population:
     members: List[Solution]
     fitness_fn: Callable
     mutation_fn: Callable
-    crossover_fn: Callable
+    crossover_fn: Any  # Cannot type to CrossoverMethod because of circular imports
 
     def refresh_fitness(self):
         for individual in self.members:
