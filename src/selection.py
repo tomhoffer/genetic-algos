@@ -15,12 +15,11 @@ def select_tournament(population: Population, tournament_size=3) -> Population:
             "Population chosen for selection has all fitness values equal to 0. Returning original population...")
         return copy.deepcopy(population)
 
-    candidates = copy.deepcopy(population)
     offspring_population = Population(members=[], fitness_fn=population.fitness_fn, mutation_fn=population.mutation_fn,
                                       crossover_fn=population.crossover_fn)
 
     for _ in range(len(population.members)):
-        picked: List[Solution] = random.choices(candidates.members, k=tournament_size)
+        picked: List[Solution] = random.choices(population.members, k=tournament_size)
         max_fitness = 0
         winner = None
         for el in picked:

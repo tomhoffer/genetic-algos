@@ -1,17 +1,20 @@
 import logging
 import random
-from typing import List
+from multiprocessing import Pool
+from typing import List, Tuple
 
 from src.crossover import crossover_two_point
 from src.model import Population, Solution
 from src.mutation import mutate
 from src.selection import select_tournament
 
-POPULATION_SIZE = 50
+POPULATION_SIZE = 10
 STR_LEN = 100
-MAX_ITERS = 1000
+MAX_ITERS = 100
+N_PROCESSES = 4
+TIMEOUT_SECONDS = 120
 
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 
 
 def generate_initial_population(size: int = POPULATION_SIZE) -> Population:
@@ -27,17 +30,20 @@ def generate_initial_population(size: int = POPULATION_SIZE) -> Population:
 
 
 def fitness(chromosome: str) -> int:
-    sum = 0
-    for bit in chromosome:
-        sum += int(bit)
-    return sum
+    return sum(int(x) for x in chromosome)
 
 
-if __name__ == "__main__":
+def train(id: int) -> Tuple[Solution, bool, int]:
+    """
+    :param id: Process identifier
+    :return: Solution, boolean indicating whether result was found or not, process identifier
+    """
 
-    winner: str = ""
-    winner_fitness: int = 0
-    population = generate_initial_population(10)
+    logging.debug(f"Process started with id {id}...")
+
+    winner = None
+    success = False
+    population = generate_initial_population()
 
     for i in range(MAX_ITERS):
         population = select_tournament(population)
@@ -45,9 +51,41 @@ if __name__ == "__main__":
         population.mutate()
         winner, winner_fitness = population.get_winner()
 
-        # If string contains all 1s
+        # Stopping criteria - If string contains all 1s
         if winner_fitness == STR_LEN:
-            logging.info(f"Found result: {winner}!")
-            exit(0)
+            success = True
+            logging.debug(f"Found result after {i} iterations in process {id}: {winner}!")
+            break
+    return winner, success, id
 
-    logging.info(f"No solution found within {MAX_ITERS} iterations. Winner with fitness {winner_fitness} was: {winner}")
+
+if __name__ == "__main__":
+    with Pool(processes=N_PROCESSES) as pool:
+        it = pool.imap_unordered(train, range(N_PROCESSES))
+
+        winner = Solution(chromosome="", fitness=0)
+        winner_process_id: int = 0
+
+        while True:  # TODO handle timeout
+
+            try:
+                # Get the first result, blocking
+                result, success, process_id = next(it)
+
+                if success:
+                    winner = result
+                    winner_process_id = process_id
+                    logging.info(f"Solution found in process {process_id}! {result}")
+                    logging.debug("Killing other processes...")
+                    pool.close()
+                    break
+                else:
+                    if result.fitness > winner.fitness:
+                        winner = result
+                        winner_process_id = process_id
+
+            # If there is no more values in iterator
+            except StopIteration:
+                logging.info(
+                    f"No solution found within {MAX_ITERS} iterations. Winner with fitness {winner.fitness} from process {winner_process_id} was: {winner.chromosome}")
+                break

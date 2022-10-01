@@ -1,10 +1,8 @@
-import copy
 import logging
 import random
 
 
 def mutate(sequence: str, probability=0.01) -> str:
-    sequence = copy.deepcopy(sequence)
     result = ""
     for gene in sequence:
         if random.random() < probability:
