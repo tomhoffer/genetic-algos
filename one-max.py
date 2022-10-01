@@ -3,7 +3,7 @@ import random
 from multiprocessing import Pool
 from typing import List, Tuple
 
-from src.enums import CrossoverMethod, MutationMethod
+from src.enums import CrossoverMethod, MutationMethod, SelectionMethod
 from src.model import Population, Solution
 from src.selection import select_tournament
 
@@ -23,7 +23,8 @@ def generate_initial_population(size: int = POPULATION_SIZE) -> Population:
         for _ in range(STR_LEN):
             el = el + str(random.randint(0, 1))
         result.append(Solution(chromosome=el))
-    p = Population(members=result, fitness_fn=fitness, mutation_fn=MutationMethod.FLIP_BIT, crossover_fn=CrossoverMethod.UNIFORM)
+    p = Population(members=result, fitness_fn=fitness, mutation_fn=MutationMethod.FLIP_BIT,
+                   crossover_fn=CrossoverMethod.UNIFORM, selection_fn=SelectionMethod.ROULETTE)
     p.refresh_fitness()
     return p
 
@@ -45,7 +46,7 @@ def train(id: int) -> Tuple[Solution, bool, int]:
     population = generate_initial_population()
 
     for i in range(MAX_ITERS):
-        population = select_tournament(population)
+        population.perform_selection()
         population.perform_crossover()
         population.mutate()
         winner, winner_fitness = population.get_winner()

@@ -13,6 +13,7 @@ class Population:
     members: List[Solution]
     fitness_fn: Callable
     mutation_fn: Any  # Cannot type to MutationMethod because of circular imports
+    selection_fn: Any  # Cannot type to SelectionMethod because of circular imports
     crossover_fn: Any  # Cannot type to CrossoverMethod because of circular imports
 
     def refresh_fitness(self):
@@ -22,6 +23,10 @@ class Population:
     def mutate(self):
         for individual in self.members:
             individual.chromosome = self.mutation_fn(individual.chromosome)
+        self.refresh_fitness()
+
+    def perform_selection(self):
+        self.members = self.selection_fn(self)
         self.refresh_fitness()
 
     def perform_crossover(self):
