@@ -15,6 +15,11 @@ class Population:
     mutation_fn: Any  # Cannot type to MutationMethod because of circular imports
     selection_fn: Any  # Cannot type to SelectionMethod because of circular imports
     crossover_fn: Any  # Cannot type to CrossoverMethod because of circular imports
+    initial_population_generator_fn: Callable
+
+    def generate_initial_population(self):
+        self.members = self.initial_population_generator_fn()
+        self.refresh_fitness()
 
     def refresh_fitness(self):
         for individual in self.members:

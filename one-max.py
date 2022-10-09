@@ -5,7 +5,6 @@ from typing import List, Tuple
 
 from src.enums import CrossoverMethod, MutationMethod, SelectionMethod
 from src.model import Population, Solution
-from src.selection import select_tournament
 
 POPULATION_SIZE = 10
 STR_LEN = 100
@@ -16,17 +15,14 @@ TIMEOUT_SECONDS = 120
 logging.basicConfig(level=logging.DEBUG)
 
 
-def generate_initial_population(size: int = POPULATION_SIZE) -> Population:
+def initial_population_generator() -> List[Solution]:
     result: List[Solution] = []
-    for _ in range(size):
+    for _ in range(POPULATION_SIZE):
         el = ""
         for _ in range(STR_LEN):
             el = el + str(random.randint(0, 1))
         result.append(Solution(chromosome=el))
-    p = Population(members=result, fitness_fn=fitness, mutation_fn=MutationMethod.FLIP_BIT,
-                   crossover_fn=CrossoverMethod.UNIFORM, selection_fn=SelectionMethod.ROULETTE)
-    p.refresh_fitness()
-    return p
+    return result
 
 
 def fitness(chromosome: str) -> int:
@@ -43,7 +39,10 @@ def train(id: int) -> Tuple[Solution, bool, int]:
 
     winner = None
     success = False
-    population = generate_initial_population()
+    population = Population(members=[], fitness_fn=fitness, mutation_fn=MutationMethod.FLIP_BIT,
+                            crossover_fn=CrossoverMethod.TWO_POINT, selection_fn=SelectionMethod.TOURNAMENT,
+                            initial_population_generator_fn=initial_population_generator)
+    population.generate_initial_population()
 
     for i in range(MAX_ITERS):
         population.perform_selection()
