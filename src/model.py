@@ -1,9 +1,18 @@
 import logging
 from dataclasses import dataclass
-from typing import List, Tuple
+from typing import List, Tuple, Callable, Any
 
 from src.conf import CONFIG
-from src.hyperparams import Hyperparams
+
+
+@dataclass
+class Hyperparams:
+    fitness_fn: Callable
+    initial_population_generator_fn: Callable
+    mutation_fn: Any  # TODO type to MutationMethod
+    selection_fn: Any  # TODO type to SelectionMethod
+    crossover_fn: Any  # TODO type to CrossoverMethod
+    population_size: int
 
 
 @dataclass

@@ -1,6 +1,6 @@
 import pytest
 
-from src.crossover import crossover_two_point
+from src.crossover import Crossover
 from src.model import Solution
 
 
@@ -14,7 +14,7 @@ def test_two_point_even_length(mocker, pos1, pos2, expected):
     mocker.patch("random.randint", side_effect=[pos1, pos2])
     a = Solution("00000000")
     b = Solution("11111111")
-    assert crossover_two_point(a, b) == expected
+    assert Crossover.two_point(a, b) == expected
 
 
 @pytest.mark.parametrize("pos1, pos2, expected",
@@ -27,4 +27,4 @@ def test_two_point_odd_length(mocker, pos1, pos2, expected):
     mocker.patch("random.randint", side_effect=[pos1, pos2])
     a = Solution("0000000")
     b = Solution("1111111")
-    assert crossover_two_point(a, b) == expected
+    assert Crossover.two_point(a, b) == expected

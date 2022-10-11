@@ -1,9 +1,9 @@
-from src.mutation import mutate_flip_bit
+from src.mutation import Mutation
 
 
 def test_probability_100():
-    assert mutate_flip_bit("0000000000", probability=1.0) == "1111111111"
+    assert Mutation.flip_bit("0000000000", probability=1.0) == "1111111111"
 
 
 def test_probability_0():
-    assert mutate_flip_bit("0000000000", probability=0) == "0000000000"
+    assert Mutation.flip_bit("0000000000", probability=0) == "0000000000"

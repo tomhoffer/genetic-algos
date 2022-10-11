@@ -3,16 +3,17 @@ import random
 from typing import List
 
 from src.conf import CONFIG
-from src.enums import CrossoverMethod, MutationMethod, SelectionMethod
-from src.executor import ParallelExecutor
-from src.hyperparams import Hyperparams
+from src.crossover import Crossover
+from src.hyperparams import HyperparamEvaluator
 from src.model import Solution
+from src.mutation import Mutation
+from src.selection import Selection
 
 POPULATION_SIZE = 10
-N_PROCESSES = 5
+N_PROCESSES = 2
 TIMEOUT_SECONDS = 120
 
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 
 
 def initial_population_generator() -> List[Solution]:
@@ -31,18 +32,32 @@ def fitness(chromosome: str) -> int:
 
 if __name__ == "__main__":
     """
-    ParallelExecutor.run((Hyperparams(crossover_fn=CrossoverMethod.TWO_POINT,
+    TrainingExecutor.run((Hyperparams(crossover_fn=Crossover.two_point,
                                       initial_population_generator_fn=initial_population_generator,
-                                      mutation_fn=MutationMethod.FLIP_BIT, selection_fn=SelectionMethod.TOURNAMENT,
+                                      mutation_fn=Mutation.flip_bit, selection_fn=Selection.tournament,
                                       fitness_fn=fitness), 0))
+
+    exit(0)
+
+    """
+
+    """
+    TrainingExecutor.run_parallel(Hyperparams(crossover_fn=Crossover.two_point,
+                                              initial_population_generator_fn=initial_population_generator,
+                                              mutation_fn=Mutation.flip_bit,
+                                              selection_fn=Selection.tournament,
+                                              fitness_fn=fitness))
 
     exit(0)
     """
 
-    ParallelExecutor.run_parallel(Hyperparams(crossover_fn=CrossoverMethod.TWO_POINT,
-                                              initial_population_generator_fn=initial_population_generator,
-                                              mutation_fn=MutationMethod.FLIP_BIT,
-                                              selection_fn=SelectionMethod.TOURNAMENT,
-                                              fitness_fn=fitness))
+    selection_methods = [Selection.tournament, Selection.roulette, Selection.rank]
+    crossover_methods = [Crossover.two_point, Crossover.single_point, Crossover.uniform]
+    mutation_methods = [Mutation.flip_bit, Mutation.swap]
+    population_sizes = [10, 100, 200]
 
-    exit(0)
+    evaluator = HyperparamEvaluator(selection_methods=selection_methods, mutation_methods=mutation_methods,
+                                    crossover_methods=crossover_methods, population_sizes=population_sizes,
+                                    fitness_fn=fitness, initial_population_generation_fn=initial_population_generator)
+
+    evaluator.grid_search()

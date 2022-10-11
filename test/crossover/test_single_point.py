@@ -1,6 +1,6 @@
 import pytest
 
-from src.crossover import crossover_single_point
+from src.crossover import Crossover
 from src.model import Solution
 
 
@@ -13,7 +13,7 @@ def test_single_point_even_length(mocker, position, expected):
     mocker.patch("random.randint", return_value=position)
     a = Solution("00000000")
     b = Solution("11111111")
-    assert crossover_single_point(a, b) == expected
+    assert Crossover.single_point(a, b) == expected
 
 
 @pytest.mark.parametrize("position, expected",
@@ -25,10 +25,11 @@ def test_single_point_odd_length(mocker, position, expected):
     mocker.patch("random.randint", return_value=position)
     a = Solution("00000")
     b = Solution("11111")
-    assert crossover_single_point(a, b) == expected
+    assert Crossover.single_point(a, b) == expected
 
 
 def test_different_chromosome_length():
     with pytest.raises(ValueError) as err:
-        crossover_single_point(Solution("0"), Solution("000"))
-    assert str(err.value) == "Gene length does not match! Parents: Solution(chromosome='0', fitness=0), Solution(chromosome='000', fitness=0)"
+        Crossover.single_point(Solution("0"), Solution("000"))
+    assert str(
+        err.value) == "Gene length does not match! Parents: Solution(chromosome='0', fitness=0), Solution(chromosome='000', fitness=0)"

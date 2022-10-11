@@ -1,11 +1,11 @@
 import pytest
 
-from src.mutation import mutate_swap
+from src.mutation import Mutation
 
 
 def test_probability_0():
     # Test that chromosome has NOT been mutated
-    assert mutate_swap("0123", probability=0) == "0123"
+    assert Mutation.swap("0123", probability=0) == "0123"
 
 
 @pytest.mark.parametrize("pos1, pos2, expected",
@@ -18,4 +18,4 @@ def test_probability_0():
 def test_probability_1(mocker, pos1, pos2, expected):
     # Test that chromosome HAS been correctly mutated
     mocker.patch("random.randint", side_effect=[pos1, pos2])
-    assert mutate_swap("01234", probability=1) == expected
+    assert Mutation.swap("01234", probability=1) == expected

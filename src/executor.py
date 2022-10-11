@@ -4,12 +4,11 @@ from multiprocessing import Pool
 from typing import Tuple
 
 from src.conf import CONFIG
-from src.hyperparams import Hyperparams
-from src.model import Population, Solution
+from src.model import Population, Solution, Hyperparams
 
 
 @dataclass
-class ParallelExecutor:
+class TrainingExecutor:
 
     @staticmethod
     def run(args: Tuple[Hyperparams, int]) -> Tuple[Solution, bool, int]:
@@ -19,17 +18,17 @@ class ParallelExecutor:
         p = Population(fitness_fn=params.fitness_fn,
                        initial_population_generator_fn=params.initial_population_generator_fn,
                        selection_fn=params.selection_fn, mutation_fn=params.mutation_fn,
-                       crossover_fn=params.crossover_fn, members=[])
+                       crossover_fn=params.crossover_fn, members=[], population_size=0)
 
         return p.train(id=process_id)
 
     @staticmethod
     def run_parallel(params: Hyperparams):
-        N_PROCESSES = 4  # TODO env var
-        with Pool(processes=N_PROCESSES) as pool:
+        logging.info(f"Running training with parameters: {params}")
+        with Pool(processes=CONFIG["N_PROCESSES"]) as pool:
 
-            it = pool.imap_unordered(ParallelExecutor.run,
-                                     zip([params for _ in range(N_PROCESSES)], range(N_PROCESSES)))
+            it = pool.imap_unordered(TrainingExecutor.run,
+                                     zip([params for _ in range(CONFIG["N_PROCESSES"])], range(CONFIG["N_PROCESSES"])))
 
             winner = Solution(chromosome="", fitness=0)
             winner_process_id: int = 0
@@ -44,7 +43,7 @@ class ParallelExecutor:
                         winner = result
                         winner_process_id = process_id
                         logging.info(f"Solution found in process {process_id}! {result}")
-                        logging.debug("Killing other processes...")
+                        logging.info("Killing other processes...")
                         pool.close()
                         break
                     else:
