@@ -1,5 +1,4 @@
 from enum import Enum
-
 from src.crossover import crossover_single_point, crossover_two_point, crossover_uniform
 from src.mutation import mutate_flip_bit, mutate_swap
 from src.selection import select_tournament, select_roulette, select_rank

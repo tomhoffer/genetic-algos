@@ -1,5 +1,9 @@
+import logging
 from dataclasses import dataclass
-from typing import List, Callable, Tuple, Any
+from typing import List, Tuple
+
+from src.conf import CONFIG
+from src.hyperparams import Hyperparams
 
 
 @dataclass
@@ -9,13 +13,34 @@ class Solution:
 
 
 @dataclass
-class Population:
+class Population(Hyperparams):
     members: List[Solution]
-    fitness_fn: Callable
-    mutation_fn: Any  # Cannot type to MutationMethod because of circular imports
-    selection_fn: Any  # Cannot type to SelectionMethod because of circular imports
-    crossover_fn: Any  # Cannot type to CrossoverMethod because of circular imports
-    initial_population_generator_fn: Callable
+
+    def train(self, id: int) -> Tuple[Solution, bool, int]:
+        """
+        :param self:
+        :param id: Process identifier
+        :return: Solution, boolean indicating whether result was found or not, process identifier
+        """
+
+        logging.debug(f"Process started with id {id}...")
+
+        winner = None
+        success = False
+        self.generate_initial_population()
+
+        for i in range(CONFIG["MAX_ITERS"]):
+            self.perform_selection()
+            self.perform_crossover()
+            self.mutate()
+            winner, winner_fitness = self.get_winner()
+
+            # Stopping criteria - If string contains all 1s
+            if winner_fitness == CONFIG["STR_LEN"]:
+                success = True
+                logging.debug(f"Found result after {i} iterations in process {id}: {winner}!")
+                break
+        return winner, success, id
 
     def generate_initial_population(self):
         self.members = self.initial_population_generator_fn()
