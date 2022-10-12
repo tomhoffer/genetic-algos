@@ -1,8 +1,10 @@
 import logging
+import os
 import random
 from typing import List
 
-from src.conf import CONFIG
+from dotenv import load_dotenv
+
 from src.crossover import Crossover
 from src.executor import TrainingExecutor
 from src.hyperparams import HyperparamEvaluator
@@ -15,13 +17,14 @@ N_PROCESSES = 2
 TIMEOUT_SECONDS = 120
 
 logging.basicConfig(level=logging.INFO)
+load_dotenv()
 
 
 def initial_population_generator() -> List[Solution]:
     result: List[Solution] = []
     for _ in range(POPULATION_SIZE):
         el = ""
-        for _ in range(CONFIG["STR_LEN"]):
+        for _ in range(int(os.environ.get("STR_LEN"))):
             el = el + str(random.randint(0, 1))
         result.append(Solution(chromosome=el))
     return result
@@ -38,10 +41,10 @@ if __name__ == "__main__":
                          selection_fn=Selection.tournament,
                          fitness_fn=fitness, population_size=POPULATION_SIZE)
 
-    #TrainingExecutor.run((params, 1))
-    #TrainingExecutor.run_parallel([params, params])
+    # TrainingExecutor.run((params, 1))
+    TrainingExecutor.run_parallel(params)
 
-
+    """
     selection_methods = [Selection.tournament, Selection.roulette, Selection.rank]
     crossover_methods = [Crossover.two_point, Crossover.single_point, Crossover.uniform]
     mutation_methods = [Mutation.flip_bit, Mutation.swap]
@@ -52,4 +55,4 @@ if __name__ == "__main__":
                                     fitness_fn=fitness, initial_population_generation_fn=initial_population_generator)
 
     evaluator.grid_search_parallel()
-
+    """

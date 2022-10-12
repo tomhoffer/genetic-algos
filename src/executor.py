@@ -1,9 +1,8 @@
 import logging
+import os
 from dataclasses import dataclass
 from multiprocessing import Pool
 from typing import Tuple
-
-from src.conf import CONFIG
 from src.model import Population, Solution, Hyperparams
 
 
@@ -26,10 +25,11 @@ class TrainingExecutor:
     @staticmethod
     def run_parallel(params: Hyperparams):
         logging.info(f"Running parallel training with parameters: {params}")
-        with Pool(processes=CONFIG["N_PROCESSES"]) as pool:
+        with Pool(processes=int(os.environ.get("N_PROCESSES"))) as pool:
 
             it = pool.imap_unordered(TrainingExecutor.run,
-                                     zip([params for _ in range(CONFIG["N_PROCESSES"])], range(CONFIG["N_PROCESSES"])))
+                                     zip([params for _ in range(int(os.environ.get("N_PROCESSES")))],
+                                         range(int(os.environ.get("N_PROCESSES")))))
 
             winner = Solution(chromosome="", fitness=0)
             winner_process_id: int = 0
@@ -55,5 +55,5 @@ class TrainingExecutor:
                 # If there is no more values in iterator
                 except StopIteration:
                     logging.info(
-                        f"No solution found within {CONFIG['MAX_ITERS']} iterations. Winner with fitness {winner.fitness} from process {winner_process_id} was: {winner.chromosome}")
+                        f"No solution found within {os.environ.get('MAX_ITERS')} iterations. Winner with fitness {winner.fitness} from process {winner_process_id} was: {winner.chromosome}")
                     break

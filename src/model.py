@@ -1,19 +1,17 @@
 import logging
+import os
 from dataclasses import dataclass
-from typing import List, Tuple, Callable, Any
-
+from typing import List, Tuple, Callable
 import wandb
-
-from src.conf import CONFIG
 
 
 @dataclass
 class Hyperparams:
     fitness_fn: Callable
     initial_population_generator_fn: Callable
-    mutation_fn: Any  # TODO type to MutationMethod
-    selection_fn: Any  # TODO type to SelectionMethod
-    crossover_fn: Any  # TODO type to CrossoverMethod
+    mutation_fn: Callable
+    selection_fn: Callable
+    crossover_fn: Callable
     population_size: int
 
 
@@ -48,7 +46,7 @@ class Population(Hyperparams):
         success = False
         self.generate_initial_population()
 
-        for i in range(CONFIG["MAX_ITERS"]):
+        for i in range(int(os.environ.get("MAX_ITERS"))):
             self.perform_selection()
             self.perform_crossover()
             self.mutate()
@@ -59,7 +57,7 @@ class Population(Hyperparams):
             }, step=i)
 
             # Stopping criteria - If string contains all 1s
-            if winner_fitness == CONFIG["STR_LEN"]:
+            if winner_fitness == os.environ.get("STR_LEN"):
                 success = True
                 logging.debug(f"Found result after {i} iterations in process {id}: {winner}!")
                 break

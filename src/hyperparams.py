@@ -1,8 +1,7 @@
+import os
 from dataclasses import dataclass
 from multiprocessing import Pool
 from typing import List, Callable
-
-from src.conf import CONFIG
 from src.executor import TrainingExecutor
 from src.model import Hyperparams
 
@@ -45,6 +44,6 @@ class HyperparamEvaluator:
                                              fitness_fn=self.fitness_fn, population_size=population_size)
                         combinations.append(params)
 
-        with Pool(processes=CONFIG["N_PROCESSES"]) as pool:
+        with Pool(processes=int(os.environ.get("N_PROCESSES"))) as pool:
             result = pool.map_async(TrainingExecutor.run, zip(combinations, range(len(combinations))))
             result.wait()
