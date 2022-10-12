@@ -4,8 +4,8 @@ from typing import List
 
 from src.conf import CONFIG
 from src.crossover import Crossover
-from src.hyperparams import HyperparamEvaluator
-from src.model import Solution
+from src.executor import TrainingExecutor
+from src.model import Solution, Hyperparams
 from src.mutation import Mutation
 from src.selection import Selection
 
@@ -31,15 +31,15 @@ def fitness(chromosome: str) -> int:
 
 
 if __name__ == "__main__":
-    """
+
     TrainingExecutor.run((Hyperparams(crossover_fn=Crossover.two_point,
                                       initial_population_generator_fn=initial_population_generator,
                                       mutation_fn=Mutation.flip_bit, selection_fn=Selection.tournament,
-                                      fitness_fn=fitness), 0))
+                                      fitness_fn=fitness, population_size=POPULATION_SIZE), 0))
 
     exit(0)
 
-    """
+
 
     """
     TrainingExecutor.run_parallel(Hyperparams(crossover_fn=Crossover.two_point,
@@ -51,6 +51,7 @@ if __name__ == "__main__":
     exit(0)
     """
 
+    """
     selection_methods = [Selection.tournament, Selection.roulette, Selection.rank]
     crossover_methods = [Crossover.two_point, Crossover.single_point, Crossover.uniform]
     mutation_methods = [Mutation.flip_bit, Mutation.swap]
@@ -61,3 +62,4 @@ if __name__ == "__main__":
                                     fitness_fn=fitness, initial_population_generation_fn=initial_population_generator)
 
     evaluator.grid_search()
+    """

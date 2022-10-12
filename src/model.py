@@ -2,6 +2,8 @@ import logging
 from dataclasses import dataclass
 from typing import List, Tuple, Callable, Any
 
+import wandb
+
 from src.conf import CONFIG
 
 
@@ -34,6 +36,8 @@ class Population(Hyperparams):
 
         logging.debug(f"Process started with id {id}...")
 
+        wandb.init(project="genetic-algos-one-max")
+
         winner = None
         success = False
         self.generate_initial_population()
@@ -43,6 +47,10 @@ class Population(Hyperparams):
             self.perform_crossover()
             self.mutate()
             winner, winner_fitness = self.get_winner()
+
+            wandb.log({
+                "fitness": winner_fitness
+            })
 
             # Stopping criteria - If string contains all 1s
             if winner_fitness == CONFIG["STR_LEN"]:
