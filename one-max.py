@@ -4,8 +4,9 @@ from typing import List
 
 from src.conf import CONFIG
 from src.crossover import Crossover
+from src.executor import TrainingExecutor
 from src.hyperparams import HyperparamEvaluator
-from src.model import Solution
+from src.model import Solution, Hyperparams
 from src.mutation import Mutation
 from src.selection import Selection
 
@@ -31,24 +32,15 @@ def fitness(chromosome: str) -> int:
 
 
 if __name__ == "__main__":
-    """
-    TrainingExecutor.run((Hyperparams(crossover_fn=Crossover.two_point,
-                                      initial_population_generator_fn=initial_population_generator,
-                                      mutation_fn=Mutation.flip_bit, selection_fn=Selection.tournament,
-                                      fitness_fn=fitness, population_size=POPULATION_SIZE), 0))
+    params = Hyperparams(crossover_fn=Crossover.two_point,
+                         initial_population_generator_fn=initial_population_generator,
+                         mutation_fn=Mutation.flip_bit,
+                         selection_fn=Selection.tournament,
+                         fitness_fn=fitness, population_size=POPULATION_SIZE)
 
-    exit(0)
-    """
+    #TrainingExecutor.run((params, 1))
+    #TrainingExecutor.run_parallel([params, params])
 
-    """
-    TrainingExecutor.run_parallel(Hyperparams(crossover_fn=Crossover.two_point,
-                                              initial_population_generator_fn=initial_population_generator,
-                                              mutation_fn=Mutation.flip_bit,
-                                              selection_fn=Selection.tournament,
-                                              fitness_fn=fitness))
-
-    exit(0)
-    """
 
     selection_methods = [Selection.tournament, Selection.roulette, Selection.rank]
     crossover_methods = [Crossover.two_point, Crossover.single_point, Crossover.uniform]
@@ -59,4 +51,5 @@ if __name__ == "__main__":
                                     crossover_methods=crossover_methods, population_sizes=population_sizes,
                                     fitness_fn=fitness, initial_population_generation_fn=initial_population_generator)
 
-    evaluator.grid_search()
+    evaluator.grid_search_parallel()
+

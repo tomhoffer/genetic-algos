@@ -14,6 +14,7 @@ class TrainingExecutor:
     def run(args: Tuple[Hyperparams, int]) -> Tuple[Solution, bool, int]:
         params: Hyperparams = args[0]
         process_id: int = args[1]
+        logging.info(f"Running training with parameters: {params}")
 
         p = Population(fitness_fn=params.fitness_fn,
                        initial_population_generator_fn=params.initial_population_generator_fn,
@@ -24,7 +25,7 @@ class TrainingExecutor:
 
     @staticmethod
     def run_parallel(params: Hyperparams):
-        logging.info(f"Running training with parameters: {params}")
+        logging.info(f"Running parallel training with parameters: {params}")
         with Pool(processes=CONFIG["N_PROCESSES"]) as pool:
 
             it = pool.imap_unordered(TrainingExecutor.run,
