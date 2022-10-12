@@ -1,6 +1,5 @@
 from dataclasses import dataclass
 from typing import List, Callable
-
 from src.executor import TrainingExecutor
 from src.model import Hyperparams
 
@@ -23,4 +22,4 @@ class HyperparamEvaluator:
                                              crossover_fn=crossover_method,
                                              initial_population_generator_fn=self.initial_population_generation_fn,
                                              fitness_fn=self.fitness_fn, population_size=population_size)
-                        TrainingExecutor.run_parallel(params)
+                        TrainingExecutor.run((params, 1))

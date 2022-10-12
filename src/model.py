@@ -28,6 +28,7 @@ class Population(Hyperparams):
     members: List[Solution]
 
     def train(self, id: int) -> Tuple[Solution, bool, int]:
+
         """
         :param self:
         :param id: Process identifier
@@ -36,7 +37,12 @@ class Population(Hyperparams):
 
         logging.debug(f"Process started with id {id}...")
 
-        wandb.init(project="genetic-algos-one-max")
+        run = wandb.init(project="genetic-algos-one-max", config={
+            "crossover-method": self.crossover_fn,
+            "selection-method": self.selection_fn,
+            "mutation-method": self.mutation_fn,
+            "population-size": self.population_size,
+        }, reinit=True)
 
         winner = None
         success = False
@@ -50,13 +56,14 @@ class Population(Hyperparams):
 
             wandb.log({
                 "fitness": winner_fitness
-            })
+            }, step=i)
 
             # Stopping criteria - If string contains all 1s
             if winner_fitness == CONFIG["STR_LEN"]:
                 success = True
                 logging.debug(f"Found result after {i} iterations in process {id}: {winner}!")
                 break
+        run.finish()
         return winner, success, id
 
     def generate_initial_population(self):
