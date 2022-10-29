@@ -3,19 +3,15 @@ import logging
 import random
 from typing import List
 
+from src.decorators import validate_population_length
 from src.model import Population, Solution
 
 
 class Selection:
 
     @staticmethod
-    def _check_population_length(population: Population):
-        if len(population.members) < 1:
-            raise ValueError(f"Population size lower than 1! Actual: {len(population.members)}")
-
-    @classmethod
-    def tournament(cls, population: Population, tournament_size=3) -> List[Solution]:
-        cls._check_population_length(population)
+    @validate_population_length
+    def tournament(population: Population, tournament_size=3) -> List[Solution]:
 
         if all(el.fitness == 0 for el in population.members):
             logging.debug(
@@ -37,9 +33,9 @@ class Selection:
         logging.debug(f"Returning population after selection: {offspring_population}")
         return offspring_population
 
-    @classmethod
-    def roulette(cls, population: Population) -> List[Solution]:
-        cls._check_population_length(population)
+    @staticmethod
+    @validate_population_length
+    def roulette(population: Population) -> List[Solution]:
         logging.debug(f"Performing roulette wheel selection from population: {population.members}")
         sum_fitness = sum(el.fitness for el in population.members)
 
@@ -54,9 +50,9 @@ class Selection:
         logging.debug(f"Returning population after selection: {offspring_population}")
         return offspring_population
 
-    @classmethod
-    def rank(cls, population: Population) -> List[Solution]:
-        cls._check_population_length(population)
+    @staticmethod
+    @validate_population_length
+    def rank(population: Population) -> List[Solution]:
         logging.debug(f"Performing rank-based selection from population: {population.members}")
 
         if all(el.fitness == 0 for el in population.members):

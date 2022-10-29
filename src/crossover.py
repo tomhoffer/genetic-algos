@@ -3,19 +3,14 @@ import logging
 import random
 from typing import Optional, Tuple
 
+from src.decorators import validate_chromosome_length
 from src.model import Solution
 
 
 class Crossover:
-
     @staticmethod
-    def _check_parent_length(parent1: Solution, parent2: Solution):
-        if len(parent1.chromosome) != len(parent2.chromosome):
-            raise ValueError(f"Gene length does not match! Parents: {parent1}, {parent2}")
-
-    @classmethod
-    def single_point(cls, parent1: Solution, parent2: Solution) -> Optional[Tuple[Solution, Solution]]:
-        cls._check_parent_length(parent1, parent2)
+    @validate_chromosome_length
+    def single_point(parent1: Solution, parent2: Solution) -> Optional[Tuple[Solution, Solution]]:
         crossover_pos = random.randint(0, len(parent1.chromosome) - 1)
 
         offspring_chromosome1 = parent1.chromosome[:crossover_pos] + parent2.chromosome[crossover_pos:]
@@ -38,13 +33,13 @@ class Crossover:
         logging.debug(f"Crossover done, results: {a}, {b}... ")
         return b, a
 
-    @classmethod
-    def uniform(cls, parent1: Solution, parent2: Solution) -> Optional[Tuple[Solution, Solution]]:
+    @staticmethod
+    @validate_chromosome_length
+    def uniform(parent1: Solution, parent2: Solution) -> Optional[Tuple[Solution, Solution]]:
         logging.debug(f"Performing uniform crossover between parents: {parent1.chromosome}, {parent2.chromosome}... ")
-        cls._check_parent_length(parent1, parent2)
 
-        offspring1 = Solution()
-        offspring2 = Solution()
+        offspring1 = Solution(chromosome="")
+        offspring2 = Solution(chromosome="")
 
         def produce_offspring(a, b):
             return ''.join([g1 if random.randint(0, 1) else g2 for (g1, g2) in zip(a.chromosome, b.chromosome)])
