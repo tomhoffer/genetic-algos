@@ -34,3 +34,5 @@ class Mutation:
             result = make_swap(sequence, swap_pos_1, swap_pos_2)
 
         return result
+
+    # TODO implement mutation for real numbers

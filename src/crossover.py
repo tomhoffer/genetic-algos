@@ -53,3 +53,5 @@ class Crossover:
         offspring2.chromosome = produce_offspring(parent1, parent2)
 
         return offspring1, offspring2
+
+    # TODO implement blend crossover for real numbers

@@ -49,7 +49,7 @@ class Population(Hyperparams):
         for i in range(int(os.environ.get("MAX_ITERS"))):
             self.perform_selection()
             self.perform_crossover()
-            self.mutate()
+            self.perform_mutation()
             winner, winner_fitness = self.get_winner()
 
             wandb.log({
@@ -72,7 +72,7 @@ class Population(Hyperparams):
         for individual in self.members:
             individual.fitness = self.fitness_fn(individual.chromosome)
 
-    def mutate(self):
+    def perform_mutation(self):
         for individual in self.members:
             individual.chromosome = self.mutation_fn(individual.chromosome)
         self.refresh_fitness()

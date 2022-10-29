@@ -7,14 +7,9 @@ from dotenv import load_dotenv
 
 from src.crossover import Crossover
 from src.executor import TrainingExecutor
-from src.hyperparams import HyperparamEvaluator
 from src.model import Solution, Hyperparams
 from src.mutation import Mutation
 from src.selection import Selection
-
-POPULATION_SIZE = 10
-N_PROCESSES = 2
-TIMEOUT_SECONDS = 120
 
 logging.basicConfig(level=logging.INFO)
 load_dotenv()
@@ -22,7 +17,7 @@ load_dotenv()
 
 def initial_population_generator() -> List[Solution]:
     result: List[Solution] = []
-    for _ in range(POPULATION_SIZE):
+    for _ in range(int(os.environ.get("POPULATION_SIZE"))):
         el = ""
         for _ in range(int(os.environ.get("STR_LEN"))):
             el = el + str(random.randint(0, 1))
@@ -39,10 +34,10 @@ if __name__ == "__main__":
                          initial_population_generator_fn=initial_population_generator,
                          mutation_fn=Mutation.flip_bit,
                          selection_fn=Selection.tournament,
-                         fitness_fn=fitness, population_size=POPULATION_SIZE)
+                         fitness_fn=fitness, population_size=int(os.environ.get("POPULATION_SIZE")))
 
-    # TrainingExecutor.run((params, 1))
-    TrainingExecutor.run_parallel(params)
+    TrainingExecutor.run((params, 1))
+    #TrainingExecutor.run_parallel(params)
 
     """
     selection_methods = [Selection.tournament, Selection.roulette, Selection.rank]
