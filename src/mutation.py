@@ -1,33 +1,30 @@
 import logging
 import random
 
+import numpy as np
+
 from src.decorators import validate_chromosome_type
 
 
 class Mutation:
 
     @staticmethod
-    @validate_chromosome_type(type=str)
-    def flip_bit(sequence: str, probability=0.01) -> str:
-        result = ""
-        for gene in sequence:
-            if random.random() < probability:
-                # flip the bit
-                result += str(1 - int(gene))
-                logging.debug(f"Mutation probability hit! Mutating gene: {sequence}...")
-            else:
-                result += gene
+    @validate_chromosome_type(type=np.ndarray)
+    def flip_bit(sequence: np.ndarray, probability=0.01) -> np.ndarray:
+        result = np.asarray(sequence)
+
+        with np.nditer(result, op_flags=['readwrite']) as it:
+            for x in it:
+                if random.random() < probability:
+                    # flip the bit
+                    x[...] = 1 - x
+                    logging.debug(f"Mutation probability hit! Mutating gene: {sequence}...")
         return result
 
     @staticmethod
-    @validate_chromosome_type(type=str)
-    def swap(sequence: str, probability=0.01) -> str:
-        def make_swap(s: str, index1: int, index2: int) -> str:
-            new_s = list(s)
-            new_s[index1], new_s[index2] = new_s[index2], new_s[index1]
-            return "".join(new_s)
-
-        result = sequence
+    @validate_chromosome_type(type=np.ndarray)
+    def swap(sequence: np.ndarray, probability=0.01) -> np.ndarray:
+        result = sequence.copy()
 
         if random.random() < probability:
             swap_pos_1 = random.randint(0, len(sequence) - 1)
@@ -35,8 +32,7 @@ class Mutation:
             logging.debug(
                 f"Mutation probability hit! Mutating gene via swap mutation over positions {swap_pos_1}, {swap_pos_2}: {sequence}...")
 
-            result = make_swap(sequence, swap_pos_1, swap_pos_2)
-
+            result[[swap_pos_1, swap_pos_2]] = result[[swap_pos_2, swap_pos_1]]
         return result
 
     # TODO implement mutation for real numbers

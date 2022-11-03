@@ -1,16 +1,21 @@
+import numpy as np
 import pytest
 
 from src.mutation import Mutation
 
 
 def test_probability_100():
-    assert Mutation.flip_bit("0000000000", probability=1.0) == "1111111111"
+    res = Mutation.flip_bit(np.asarray([0, 0, 0, 0, 0, 0, 0, 0]), probability=1.0)
+    np.testing.assert_array_equal(res, np.asarray([1, 1, 1, 1, 1, 1, 1, 1]))
 
 
 def test_probability_0():
-    assert Mutation.flip_bit("0000000000", probability=0) == "0000000000"
+    res = Mutation.flip_bit(np.asarray([0, 0, 0, 0, 0, 0, 0, 0]), probability=0)
+    np.testing.assert_array_equal(res, np.asarray([0, 0, 0, 0, 0, 0, 0, 0]))
 
 
 def test_invalid_chromosome_type():
-    with pytest.raises(TypeError, match=r"Chromosome does not match required type: .*\. Chromosome: .*") as err:
-        Mutation.flip_bit(chromosome=123, probability=1)
+    invalid_values = [123, "123", 1.23]
+    for val in invalid_values:
+        with pytest.raises(TypeError, match=r"Chromosome does not match required type: .*\. Chromosome: .*") as err:
+            Mutation.flip_bit(val, probability=1)
