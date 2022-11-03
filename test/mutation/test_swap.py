@@ -19,3 +19,8 @@ def test_probability_1(mocker, pos1, pos2, expected):
     # Test that chromosome HAS been correctly mutated
     mocker.patch("random.randint", side_effect=[pos1, pos2])
     assert Mutation.swap("01234", probability=1) == expected
+
+
+def test_invalid_chromosome_type():
+    with pytest.raises(TypeError, match=r"Chromosome does not match required type: .*\. Chromosome: .*") as err:
+        Mutation.swap(123, probability=1)

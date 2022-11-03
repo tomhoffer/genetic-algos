@@ -1,10 +1,13 @@
 import logging
 import random
 
+from src.decorators import validate_chromosome_type
+
 
 class Mutation:
 
     @staticmethod
+    @validate_chromosome_type(type=str)
     def flip_bit(sequence: str, probability=0.01) -> str:
         result = ""
         for gene in sequence:
@@ -17,6 +20,7 @@ class Mutation:
         return result
 
     @staticmethod
+    @validate_chromosome_type(type=str)
     def swap(sequence: str, probability=0.01) -> str:
         def make_swap(s: str, index1: int, index2: int) -> str:
             new_s = list(s)

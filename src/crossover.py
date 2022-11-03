@@ -3,12 +3,13 @@ import logging
 import random
 from typing import Optional, Tuple
 
-from src.decorators import validate_chromosome_length
+from src.decorators import validate_chromosome_length, validate_parents_chromosome_type
 from src.model import Solution
 
 
 class Crossover:
     @staticmethod
+    @validate_parents_chromosome_type(type=str)
     @validate_chromosome_length
     def single_point(parent1: Solution, parent2: Solution) -> Optional[Tuple[Solution, Solution]]:
         crossover_pos = random.randint(0, len(parent1.chromosome) - 1)
@@ -34,6 +35,7 @@ class Crossover:
         return b, a
 
     @staticmethod
+    @validate_parents_chromosome_type(type=str)
     @validate_chromosome_length
     def uniform(parent1: Solution, parent2: Solution) -> Optional[Tuple[Solution, Solution]]:
         logging.debug(f"Performing uniform crossover between parents: {parent1.chromosome}, {parent2.chromosome}... ")

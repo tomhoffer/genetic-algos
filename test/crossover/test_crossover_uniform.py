@@ -25,3 +25,8 @@ def test_different_chromosome_length():
         Crossover.uniform(Solution("0"), Solution("000"))
     assert str(
         err.value) == "Gene length does not match! Parents: Solution(chromosome='0', fitness=0), Solution(chromosome='000', fitness=0)"
+
+
+def test_invalid_chromosome_type():
+    with pytest.raises(TypeError, match=r"Parent chromosomes do not match required type: .*\. Parents: .*, .*") as err:
+        Crossover.uniform(Solution(0.98), Solution("000"))

@@ -1,7 +1,7 @@
 import logging
 import os
 from dataclasses import dataclass
-from typing import List, Tuple, Callable
+from typing import List, Tuple, Callable, Dict
 import wandb
 
 
@@ -17,7 +17,7 @@ class Hyperparams:
 
 @dataclass
 class Solution:
-    chromosome: str = ""  # TODO make generic
+    chromosome: str | List[Dict]
     fitness: float = 0
 
 
