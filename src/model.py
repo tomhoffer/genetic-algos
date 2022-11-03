@@ -1,7 +1,8 @@
 import logging
 import os
 from dataclasses import dataclass
-from typing import List, Tuple, Callable, Dict
+from typing import List, Tuple, Callable
+import numpy as np
 import wandb
 
 
@@ -17,7 +18,7 @@ class Hyperparams:
 
 @dataclass
 class Solution:
-    chromosome: str | List[Dict]
+    chromosome: np.ndarray
     fitness: float = 0
 
 
