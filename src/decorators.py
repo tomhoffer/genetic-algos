@@ -7,7 +7,7 @@ def validate_chromosome_length(func):
     """
 
     def wrapper(parent1: Solution, parent2: Solution, *args, **kwargs):
-        if len(parent1.chromosome) != len(parent2.chromosome):
+        if parent1.chromosome.size != parent2.chromosome.size:
             raise ValueError(f"Gene length does not match! Parents: {parent1}, {parent2}")
 
         return func(parent1, parent2, *args, **kwargs)

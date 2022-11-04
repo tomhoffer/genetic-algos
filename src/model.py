@@ -5,6 +5,8 @@ from typing import List, Tuple, Callable
 import numpy as np
 import wandb
 
+from src.helpers import eval_bool
+
 
 @dataclass
 class Hyperparams:
@@ -21,6 +23,9 @@ class Solution:
     chromosome: np.ndarray
     fitness: float = 0
 
+    def __eq__(self, other):
+        return np.array_equal(self.chromosome, other.chromosome)
+
 
 @dataclass
 class Population(Hyperparams):
@@ -34,14 +39,15 @@ class Population(Hyperparams):
         :return: Solution, boolean indicating whether result was found or not, process identifier
         """
 
-        logging.debug(f"Process started with id {id}...")
+        logging.debug("Process started with id %d...", id)
 
-        run = wandb.init(project="genetic-algos-one-max", config={
-            "crossover-method": self.crossover_fn,
-            "selection-method": self.selection_fn,
-            "mutation-method": self.mutation_fn,
-            "population-size": self.population_size,
-        }, reinit=True)
+        if eval_bool(os.environ.get("ENABLE_WANDB")):
+            run = wandb.init(project="genetic-algos-one-max", config={
+                "crossover-method": self.crossover_fn,
+                "selection-method": self.selection_fn,
+                "mutation-method": self.mutation_fn,
+                "population-size": self.population_size,
+            }, reinit=True)
 
         winner = None
         success = False
@@ -53,16 +59,19 @@ class Population(Hyperparams):
             self.perform_mutation()
             winner, winner_fitness = self.get_winner()
 
-            wandb.log({
-                "fitness": winner_fitness
-            }, step=i)
+            if eval_bool(os.environ.get("ENABLE_WANDB")):
+                wandb.log({
+                    "fitness": winner_fitness
+                }, step=i)
 
             # Stopping criteria - If string contains all 1s
-            if winner_fitness == os.environ.get("STR_LEN"):
+            if winner_fitness == int(os.environ.get("STR_LEN")):
                 success = True
-                logging.debug(f"Found result after {i} iterations in process {id}: {winner}!")
+                logging.debug("Found result after %d iterations in process %d: %s!", i, id, winner)
                 break
-        run.finish()
+        if eval_bool(os.environ.get("ENABLE_WANDB")):
+            run.finish()
+
         return winner, success, id
 
     def generate_initial_population(self):

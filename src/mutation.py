@@ -18,7 +18,7 @@ class Mutation:
                 if random.random() < probability:
                     # flip the bit
                     x[...] = 1 - x
-                    logging.debug(f"Mutation probability hit! Mutating gene: {sequence}...")
+                    logging.debug("Mutation probability hit! Mutating gene: %s...", sequence)
         return result
 
     @staticmethod
@@ -30,7 +30,8 @@ class Mutation:
             swap_pos_1 = random.randint(0, len(sequence) - 1)
             swap_pos_2 = random.randint(0, len(sequence) - 1)
             logging.debug(
-                f"Mutation probability hit! Mutating gene via swap mutation over positions {swap_pos_1}, {swap_pos_2}: {sequence}...")
+                "Mutation probability hit! Mutating gene via swap mutation over positions %d, %d: %s...", swap_pos_1,
+                swap_pos_2, sequence)
 
             result[[swap_pos_1, swap_pos_2]] = result[[swap_pos_2, swap_pos_1]]
         return result
