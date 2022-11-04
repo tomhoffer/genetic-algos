@@ -4,8 +4,11 @@ def eval_bool(value: str) -> bool:
     :param value: string value of the env variable
     :return: boolean interpretation of the value
     """
-
-    if value.upper() == "TRUE":
-        return True
-    else:
+    try:
+        if value.upper() == "TRUE":
+            return True
+        else:
+            return False
+    except AttributeError:
+        # Empty variable
         return False
