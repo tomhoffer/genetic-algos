@@ -19,7 +19,7 @@ def test_all_zero_fitness(population_with_zero_fitness):
     assert result == population_with_zero_fitness.members
 
 
-def test_all_identical(population_with_positive_fitness):
+def test_all_identical(population_with_identical_solutions):
     # Selection works for population with identical positive fitness values
-    result: List[Solution] = Selection.rank(population=population_with_positive_fitness)
-    assert result == population_with_positive_fitness.members
+    result: List[Solution] = Selection.rank(population=population_with_identical_solutions)
+    assert result == population_with_identical_solutions.members
