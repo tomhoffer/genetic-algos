@@ -3,6 +3,9 @@ import os
 from dataclasses import dataclass
 from multiprocessing import Pool
 from typing import Tuple
+
+import numpy as np
+
 from src.model import Population, Solution, Hyperparams
 
 
@@ -18,7 +21,8 @@ class TrainingExecutor:
         p = Population(fitness_fn=params.fitness_fn,
                        initial_population_generator_fn=params.initial_population_generator_fn,
                        selection_fn=params.selection_fn, mutation_fn=params.mutation_fn,
-                       crossover_fn=params.crossover_fn, members=[], population_size=params.population_size)
+                       crossover_fn=params.crossover_fn, members=[], population_size=params.population_size,
+                       elitism=params.elitism)
 
         return p.train(id=process_id)
 
@@ -31,7 +35,7 @@ class TrainingExecutor:
                                      zip([params for _ in range(int(os.environ.get("N_PROCESSES")))],
                                          range(int(os.environ.get("N_PROCESSES")))))
 
-            winner = Solution(chromosome="", fitness=0)
+            winner = Solution(chromosome=np.asarray([]), fitness=0)
             winner_process_id: int = 0
 
             while True:  # TODO handle timeout

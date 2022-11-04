@@ -32,7 +32,7 @@ if __name__ == "__main__":
                          initial_population_generator_fn=initial_population_generator,
                          mutation_fn=Mutation.flip_bit,
                          selection_fn=Selection.tournament,
-                         fitness_fn=fitness, population_size=int(os.environ.get("POPULATION_SIZE")))
+                         fitness_fn=fitness, population_size=int(os.environ.get("POPULATION_SIZE")), elitism=5)
 
     TrainingExecutor.run((params, 1))
     # TrainingExecutor.run_parallel(params)
@@ -42,10 +42,11 @@ if __name__ == "__main__":
     crossover_methods = [Crossover.two_point, Crossover.single_point, Crossover.uniform]
     mutation_methods = [Mutation.flip_bit, Mutation.swap]
     population_sizes = [10, 100, 200]
+    elitism_values = [1, 2, 3]
 
     evaluator = HyperparamEvaluator(selection_methods=selection_methods, mutation_methods=mutation_methods,
                                     crossover_methods=crossover_methods, population_sizes=population_sizes,
-                                    fitness_fn=fitness, initial_population_generation_fn=initial_population_generator)
+                                    fitness_fn=fitness, initial_population_generation_fn=initial_population_generator, elitism_values=elitism_values)
 
     evaluator.grid_search_parallel()
     """

@@ -1,9 +1,11 @@
 import copy
 import logging
+import os
 import random
 from typing import List
 
 from src.decorators import validate_population_length
+from src.helpers import eval_bool
 from src.model import Population, Solution
 
 
@@ -19,8 +21,13 @@ class Selection:
             return copy.deepcopy(population.members)
 
         offspring_population = []
+        members_to_select = len(population.members)
+        if eval_bool(os.environ.get("ELITISM")):
+            members_to_select = members_to_select - population.elitism
+            elites: List[Solution] = _find_best(population, population.elitism)
+            offspring_population.extend(elites)
 
-        for _ in range(len(population.members)):
+        for _ in range(members_to_select):
             picked: List[Solution] = random.choices(population.members, k=tournament_size)
             max_fitness = 0
             winner = None
@@ -43,10 +50,17 @@ class Selection:
             logging.debug("Roulette selection was not possible, all fitness are zero. Returning parent population...")
             return copy.deepcopy(population.members)
 
+        offspring_population = []
+        members_to_select = len(population.members)
+        if eval_bool(os.environ.get("ELITISM")):
+            members_to_select = members_to_select - population.elitism
+            elites: List[Solution] = _find_best(population, population.elitism)
+            offspring_population.extend(elites)
+
         selection_probs = [el.fitness / sum_fitness for el in population.members]
         logging.debug("Roulette weights for population are: %s", selection_probs)
 
-        offspring_population = random.choices(population.members, weights=selection_probs, k=len(population.members))
+        offspring_population.extend(random.choices(population.members, weights=selection_probs, k=members_to_select))
         logging.debug("Returning population after selection: %s", offspring_population)
         return offspring_population
 
@@ -60,6 +74,13 @@ class Selection:
                 "Rank-based selection was not possible, all fitness are zero. Returning parent population...")
             return copy.deepcopy(population.members)
 
+        offspring_population = []
+        members_to_select = len(population.members)
+        if eval_bool(os.environ.get("ELITISM")):
+            members_to_select = members_to_select - population.elitism
+            elites: List[Solution] = _find_best(population, population.elitism)
+            offspring_population.extend(elites)
+
         members_ordered_by_fitness = sorted(population.members, key=lambda el: el.fitness)
         logging.debug("Population members ordered by fitness values: %s", members_ordered_by_fitness)
 
@@ -69,9 +90,19 @@ class Selection:
         selection_probs = [(idx + 1) / sum_rank for idx, el in enumerate(members_ordered_by_fitness)]
         logging.debug("Rank weights for population are: %s", selection_probs)
 
-        offspring_population = random.choices(members_ordered_by_fitness, weights=selection_probs,
-                                              k=len(members_ordered_by_fitness))
+        offspring_population.extend(random.choices(members_ordered_by_fitness, weights=selection_probs,
+                                                   k=members_to_select))
         logging.debug("Returning population after selection: %s", offspring_population)
         return offspring_population
 
     # TODO stochastic universal sampling selection
+
+
+def _find_best(population: Population, n: int) -> List[Solution]:
+    """
+    Returns n best individuals from given population
+    :param population: population
+    :param n: number of best individuals to return
+    :return: best n individuals
+    """
+    return sorted(population.members, key=lambda x: x.fitness, reverse=True)[:n]

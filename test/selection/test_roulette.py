@@ -1,9 +1,11 @@
+import copy
 from typing import List
 
 import pytest
 
-from src.model import Solution
+from src.model import Solution, Population
 from src.selection import Selection
+from conftest import mockenv
 
 
 def test_empty_population(empty_population):
@@ -23,3 +25,15 @@ def test_all_identical(population_with_identical_solutions):
     # Selection works for population with identical positive fitness values
     result: List[Solution] = Selection.roulette(population=population_with_identical_solutions)
     assert result == population_with_identical_solutions.members
+
+
+@mockenv(ELITISM="True")
+def test_elitism_enabled(population_with_growing_fitness):
+    # Elitism ensures best individuals survive into next generation
+    old_population: Population = copy.deepcopy(population_with_growing_fitness)
+    result: List[Solution] = Selection.roulette(population=population_with_growing_fitness)
+
+    elite_individuals = sorted(old_population.members, key=lambda x: x.fitness, reverse=True)[:3]
+    assert len(result) == len(old_population.members)
+    for elite in elite_individuals:
+        assert elite in result

@@ -14,6 +14,7 @@ class HyperparamEvaluator:
     population_sizes: List[int]
     initial_population_generation_fn: Callable
     fitness_fn: Callable
+    elitism_values: List[int]
 
     def grid_search(self):
         """
@@ -23,11 +24,13 @@ class HyperparamEvaluator:
             for crossover_method in self.crossover_methods:
                 for mutation_method in self.mutation_methods:
                     for population_size in self.population_sizes:
-                        params = Hyperparams(mutation_fn=mutation_method, selection_fn=selection_method,
-                                             crossover_fn=crossover_method,
-                                             initial_population_generator_fn=self.initial_population_generation_fn,
-                                             fitness_fn=self.fitness_fn, population_size=population_size)
-                        TrainingExecutor.run((params, 1))
+                        for elitism_value in self.elitism_values:
+                            params = Hyperparams(mutation_fn=mutation_method, selection_fn=selection_method,
+                                                 crossover_fn=crossover_method,
+                                                 initial_population_generator_fn=self.initial_population_generation_fn,
+                                                 fitness_fn=self.fitness_fn, population_size=population_size,
+                                                 elitism=elitism_value)
+                            TrainingExecutor.run((params, 1))
 
     def grid_search_parallel(self):
         """
@@ -38,11 +41,13 @@ class HyperparamEvaluator:
             for crossover_method in self.crossover_methods:
                 for mutation_method in self.mutation_methods:
                     for population_size in self.population_sizes:
-                        params = Hyperparams(mutation_fn=mutation_method, selection_fn=selection_method,
-                                             crossover_fn=crossover_method,
-                                             initial_population_generator_fn=self.initial_population_generation_fn,
-                                             fitness_fn=self.fitness_fn, population_size=population_size)
-                        combinations.append(params)
+                        for elitism_value in self.elitism_values:
+                            params = Hyperparams(mutation_fn=mutation_method, selection_fn=selection_method,
+                                                 crossover_fn=crossover_method,
+                                                 initial_population_generator_fn=self.initial_population_generation_fn,
+                                                 fitness_fn=self.fitness_fn, population_size=population_size,
+                                                 elitism=elitism_value)
+                            combinations.append(params)
 
         with Pool(processes=int(os.environ.get("N_PROCESSES"))) as pool:
             result = pool.map_async(TrainingExecutor.run, zip(combinations, range(len(combinations))))

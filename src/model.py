@@ -16,6 +16,7 @@ class Hyperparams:
     selection_fn: Callable
     crossover_fn: Callable
     population_size: int
+    elitism: int
 
 
 @dataclass
@@ -67,7 +68,7 @@ class Population(Hyperparams):
             # Stopping criteria - If string contains all 1s
             if winner_fitness == int(os.environ.get("STR_LEN")):
                 success = True
-                logging.debug("Found result after %d iterations in process %d: %s!", i, id, winner)
+                logging.info("Found result after %d iterations in process %d: %s!", i, id, winner)
                 break
         if eval_bool(os.environ.get("ENABLE_WANDB")):
             run.finish()
