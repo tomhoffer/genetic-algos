@@ -44,3 +44,15 @@ def test_elitism_enabled(population_with_growing_fitness):
     assert len(result) == len(old_population.members)
     for elite in elite_individuals:
         assert elite in result
+
+
+@mockenv(ELITISM="True")
+def test_elitism_enabled(population_with_zero_elitism):
+    # Elitism is not effective when enabled but set to 0
+    old_population: Population = copy.deepcopy(population_with_zero_elitism)
+    result: List[Solution] = Selection.tournament(population=population_with_zero_elitism)
+
+    elite_individuals = sorted(old_population.members, key=lambda x: x.fitness, reverse=True)[:3]
+    assert len(result) == len(old_population.members)
+    for elite in elite_individuals:
+        assert elite in result

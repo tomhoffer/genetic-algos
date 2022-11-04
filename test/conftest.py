@@ -57,6 +57,14 @@ def population_with_growing_fitness():
                       initial_population_generator_fn=initial_population_generator, population_size=10, elitism=3)
 
 
+@pytest.fixture(scope="class")
+def population_with_zero_elitism():
+    return Population(members=[Solution(np.asarray([1, 0, 1]), fitness=1) for i in range(10)],
+                      crossover_fn=dummy_crossover_fn,
+                      mutation_fn=dummy_fn, fitness_fn=dummy_fitness, selection_fn=dummy_fn,
+                      initial_population_generator_fn=initial_population_generator, population_size=10, elitism=0)
+
+
 @pytest.fixture
 def empty_population():
     return Population(members=[], crossover_fn=dummy_crossover_fn, mutation_fn=dummy_fn, fitness_fn=dummy_fitness,
