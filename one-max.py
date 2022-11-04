@@ -1,8 +1,8 @@
 import logging
 import os
-import random
 from typing import List
 
+import numpy as np
 from dotenv import load_dotenv
 
 from src.crossover import Crossover
@@ -18,15 +18,13 @@ load_dotenv()
 def initial_population_generator() -> List[Solution]:
     result: List[Solution] = []
     for _ in range(int(os.environ.get("POPULATION_SIZE"))):
-        el = ""
-        for _ in range(int(os.environ.get("STR_LEN"))):
-            el = el + str(random.randint(0, 1))
+        el = np.random.choice([0, 1], size=int(os.environ.get("STR_LEN")))
         result.append(Solution(chromosome=el))
     return result
 
 
-def fitness(chromosome: str) -> int:
-    return sum(int(x) for x in chromosome)
+def fitness(chromosome: np.ndarray) -> int:
+    return chromosome.sum()
 
 
 if __name__ == "__main__":
@@ -37,7 +35,7 @@ if __name__ == "__main__":
                          fitness_fn=fitness, population_size=int(os.environ.get("POPULATION_SIZE")))
 
     TrainingExecutor.run((params, 1))
-    #TrainingExecutor.run_parallel(params)
+    # TrainingExecutor.run_parallel(params)
 
     """
     selection_methods = [Selection.tournament, Selection.roulette, Selection.rank]
