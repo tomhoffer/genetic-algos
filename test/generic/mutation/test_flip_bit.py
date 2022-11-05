@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from src.mutation import Mutation
+from src.generic.mutation import Mutation
 
 
 def test_probability_100():

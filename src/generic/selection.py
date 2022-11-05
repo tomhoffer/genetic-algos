@@ -4,9 +4,9 @@ import os
 import random
 from typing import List
 
-from src.decorators import validate_population_length
-from src.helpers import eval_bool
-from src.model import Population, Solution
+from src.generic.decorators import validate_population_length
+from src.generic.helpers import eval_bool
+from src.generic.model import Population, Solution
 
 
 class Selection:

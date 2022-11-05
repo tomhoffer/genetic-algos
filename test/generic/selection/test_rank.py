@@ -3,8 +3,8 @@ from typing import List
 
 import pytest
 
-from src.model import Solution, Population
-from src.selection import Selection
+from src.generic.model import Solution, Population
+from src.generic.selection import Selection
 from conftest import mockenv
 
 

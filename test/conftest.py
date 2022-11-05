@@ -4,7 +4,7 @@ from unittest import mock
 import numpy as np
 import pytest
 
-from src.model import Population, Solution
+from src.generic.model import Population, Solution
 
 
 def mockenv(**envvars):

@@ -2,8 +2,8 @@ import os
 from dataclasses import dataclass
 from multiprocessing import Pool
 from typing import List, Callable
-from src.executor import TrainingExecutor
-from src.model import Hyperparams
+from src.generic.executor import TrainingExecutor
+from src.generic.model import Hyperparams
 
 
 @dataclass

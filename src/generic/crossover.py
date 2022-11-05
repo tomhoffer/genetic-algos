@@ -1,12 +1,11 @@
-import copy
 import logging
 import random
 from typing import Optional, Tuple
 
 import numpy as np
 
-from src.decorators import validate_chromosome_length, validate_parents_chromosome_type
-from src.model import Solution
+from src.generic.decorators import validate_chromosome_length, validate_parents_chromosome_type
+from src.generic.model import Solution
 
 
 class Crossover:

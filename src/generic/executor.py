@@ -6,7 +6,7 @@ from typing import Tuple
 
 import numpy as np
 
-from src.model import Population, Solution, Hyperparams
+from src.generic.model import Population, Solution, Hyperparams
 
 
 @dataclass

@@ -1,4 +1,4 @@
-from src.model import Solution, Population
+from src.generic.model import Solution, Population
 
 
 def validate_chromosome_length(func):

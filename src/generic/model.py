@@ -5,7 +5,7 @@ from typing import List, Tuple, Callable
 import numpy as np
 import wandb
 
-from src.helpers import eval_bool
+from src.generic.helpers import eval_bool
 
 
 @dataclass

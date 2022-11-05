@@ -2,12 +2,12 @@ import copy
 
 import numpy as np
 
-from src.model import Solution
+from src.generic.model import Solution
 from conftest import mockenv
 
 
 def test_get_winner(population_with_growing_fitness, mocker):
-    mocked_refresh_fitness = mocker.patch('src.model.Population.refresh_fitness')
+    mocked_refresh_fitness = mocker.patch('src.generic.model.Population.refresh_fitness')
     winner, fitness = population_with_growing_fitness.get_winner()
 
     mocked_refresh_fitness.assert_called_once()
@@ -16,7 +16,7 @@ def test_get_winner(population_with_growing_fitness, mocker):
 
 
 def test_perform_selection(population_with_growing_fitness, mocker):
-    mocked_refresh_fitness = mocker.patch('src.model.Population.refresh_fitness')
+    mocked_refresh_fitness = mocker.patch('src.generic.model.Population.refresh_fitness')
     old_members = copy.deepcopy(population_with_growing_fitness.members)
     population_with_growing_fitness.perform_selection()
     mocked_refresh_fitness.assert_called_once()
@@ -24,7 +24,7 @@ def test_perform_selection(population_with_growing_fitness, mocker):
 
 
 def test_perform_mutation(population_with_growing_fitness, mocker):
-    mocked_refresh_fitness = mocker.patch('src.model.Population.refresh_fitness')
+    mocked_refresh_fitness = mocker.patch('src.generic.model.Population.refresh_fitness')
     old_members = copy.deepcopy(population_with_growing_fitness.members)
     population_with_growing_fitness.perform_mutation()
     mocked_refresh_fitness.assert_called_once()
@@ -32,7 +32,7 @@ def test_perform_mutation(population_with_growing_fitness, mocker):
 
 
 def test_perform_crossover(population_with_growing_fitness, mocker):
-    mocked_refresh_fitness = mocker.patch('src.model.Population.refresh_fitness')
+    mocked_refresh_fitness = mocker.patch('src.generic.model.Population.refresh_fitness')
     old_members = copy.deepcopy(population_with_growing_fitness.members)
     population_with_growing_fitness.perform_crossover()
     mocked_refresh_fitness.assert_called_once()
@@ -40,7 +40,7 @@ def test_perform_crossover(population_with_growing_fitness, mocker):
 
 
 def test_generate_initial_population(empty_population, mocker):
-    mocked_refresh_fitness = mocker.patch('src.model.Population.refresh_fitness')
+    mocked_refresh_fitness = mocker.patch('src.generic.model.Population.refresh_fitness')
     old_members = copy.deepcopy(empty_population.members)
 
     # Re-generate population again
@@ -56,11 +56,11 @@ def test_train_not_successful(population_with_growing_fitness, mocker):
 
     max_iters = 3
     id = 1
-    mocked_generate_initial_population = mocker.patch('src.model.Population.generate_initial_population')
-    mocked_perform_selection = mocker.patch('src.model.Population.perform_selection')
-    mocked_perform_crossover = mocker.patch('src.model.Population.perform_crossover')
-    mocked_perform_mutation = mocker.patch('src.model.Population.perform_mutation')
-    mocked_get_winner = mocker.patch('src.model.Population.get_winner')
+    mocked_generate_initial_population = mocker.patch('src.generic.model.Population.generate_initial_population')
+    mocked_perform_selection = mocker.patch('src.generic.model.Population.perform_selection')
+    mocked_perform_crossover = mocker.patch('src.generic.model.Population.perform_crossover')
+    mocked_perform_mutation = mocker.patch('src.generic.model.Population.perform_mutation')
+    mocked_get_winner = mocker.patch('src.generic.model.Population.get_winner')
     mocked_get_winner.return_value = (Solution(chromosome=np.asarray([1, 0, 1]), fitness=0), 0)
     mocked_wandb_init = mocker.patch('wandb.init')
     mocked_wandb_log = mocker.patch('wandb.log')
@@ -86,11 +86,11 @@ def test_train_successful(population_with_growing_fitness, mocker):
     # Test solution being found after first iteration
 
     id = 1
-    mocked_generate_initial_population = mocker.patch('src.model.Population.generate_initial_population')
-    mocked_perform_selection = mocker.patch('src.model.Population.perform_selection')
-    mocked_perform_crossover = mocker.patch('src.model.Population.perform_crossover')
-    mocked_perform_mutation = mocker.patch('src.model.Population.perform_mutation')
-    mocked_get_winner = mocker.patch('src.model.Population.get_winner')
+    mocked_generate_initial_population = mocker.patch('src.generic.model.Population.generate_initial_population')
+    mocked_perform_selection = mocker.patch('src.generic.model.Population.perform_selection')
+    mocked_perform_crossover = mocker.patch('src.generic.model.Population.perform_crossover')
+    mocked_perform_mutation = mocker.patch('src.generic.model.Population.perform_mutation')
+    mocked_get_winner = mocker.patch('src.generic.model.Population.get_winner')
     mocked_get_winner.return_value = (Solution(chromosome=np.asarray([1, 1, 1]), fitness=3), 3)
     mocked_wandb_init = mocker.patch('wandb.init')
     mocked_wandb_log = mocker.patch('wandb.log')

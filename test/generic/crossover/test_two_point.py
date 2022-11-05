@@ -1,8 +1,8 @@
 import numpy as np
 import pytest
 
-from src.crossover import Crossover
-from src.model import Solution
+from src.generic.crossover import Crossover
+from src.generic.model import Solution
 
 
 @pytest.mark.parametrize("pos1, pos2, expected",
