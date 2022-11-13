@@ -1,5 +1,6 @@
 import logging
 import os
+from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import List, Tuple, Callable
 import numpy as np
@@ -15,6 +16,7 @@ class Hyperparams:
     mutation_fn: Callable
     selection_fn: Callable
     crossover_fn: Callable
+    stopping_criteria_fn: Callable
     population_size: int
     elitism: int
 
@@ -28,8 +30,39 @@ class Solution:
         return np.array_equal(self.chromosome, other.chromosome)
 
 
+class PopulationBase(ABC):
+
+    @abstractmethod
+    def train(self, id: int):
+        pass
+
+    @abstractmethod
+    def generate_initial_population(self):
+        pass
+
+    @abstractmethod
+    def refresh_fitness(self):
+        pass
+
+    @abstractmethod
+    def perform_mutation(self):
+        pass
+
+    @abstractmethod
+    def perform_selection(self):
+        pass
+
+    @abstractmethod
+    def perform_crossover(self):
+        pass
+
+    @abstractmethod
+    def get_winner(self):
+        pass
+
+
 @dataclass
-class Population(Hyperparams):
+class Population(Hyperparams, PopulationBase):
     members: List[Solution]
 
     def train(self, id: int) -> Tuple[Solution, bool, int]:
@@ -65,8 +98,7 @@ class Population(Hyperparams):
                     "fitness": winner_fitness
                 }, step=i)
 
-            # Stopping criteria - If string contains all 1s
-            if winner_fitness == int(os.environ.get("STR_LEN")):
+            if self.stopping_criteria_fn(winner):
                 success = True
                 logging.info("Found result after %d iterations in process %d: %s!", i, id, winner)
                 break

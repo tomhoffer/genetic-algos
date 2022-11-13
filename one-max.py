@@ -5,11 +5,11 @@ from typing import List
 import numpy as np
 from dotenv import load_dotenv
 
-from src.crossover import Crossover
-from src.executor import TrainingExecutor
-from src.model import Solution, Hyperparams
-from src.mutation import Mutation
-from src.selection import Selection
+from src.generic.crossover import Crossover
+from src.generic.executor import TrainingExecutor
+from src.generic.model import Solution, Hyperparams
+from src.generic.mutation import Mutation
+from src.generic.selection import Selection
 
 logging.basicConfig(level=logging.INFO)
 load_dotenv()
@@ -27,12 +27,17 @@ def fitness(chromosome: np.ndarray) -> int:
     return chromosome.sum()
 
 
+def stopping_criteria_fn(solution: Solution) -> bool:
+    return solution.fitness == int(os.environ.get("STR_LEN"))
+
+
 if __name__ == "__main__":
     params = Hyperparams(crossover_fn=Crossover.two_point,
                          initial_population_generator_fn=initial_population_generator,
                          mutation_fn=Mutation.flip_bit,
                          selection_fn=Selection.tournament,
-                         fitness_fn=fitness, population_size=int(os.environ.get("POPULATION_SIZE")), elitism=5)
+                         fitness_fn=fitness, population_size=int(os.environ.get("POPULATION_SIZE")), elitism=5,
+                         stopping_criteria_fn=stopping_criteria_fn)
 
     TrainingExecutor.run((params, 1))
     # TrainingExecutor.run_parallel(params)
