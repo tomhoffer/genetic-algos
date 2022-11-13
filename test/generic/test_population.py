@@ -6,37 +6,41 @@ from src.generic.model import Solution
 from conftest import mockenv
 
 
-def test_get_winner(population_with_growing_fitness, mocker):
+def test_get_winner(configurable_population, mocker):
+    population = configurable_population(elitism=0)
     mocked_refresh_fitness = mocker.patch('src.generic.model.Population.refresh_fitness')
-    winner, fitness = population_with_growing_fitness.get_winner()
+    winner, fitness = population.get_winner()
 
     mocked_refresh_fitness.assert_called_once()
     assert winner.fitness == fitness
-    assert fitness == max(member.fitness for member in population_with_growing_fitness.members)
+    assert fitness == max(member.fitness for member in population.members)
 
 
-def test_perform_selection(population_with_growing_fitness, mocker):
+def test_perform_selection(configurable_population, mocker):
+    population = configurable_population(elitism=0)
     mocked_refresh_fitness = mocker.patch('src.generic.model.Population.refresh_fitness')
-    old_members = copy.deepcopy(population_with_growing_fitness.members)
-    population_with_growing_fitness.perform_selection()
+    old_members = copy.deepcopy(population.members)
+    population.perform_selection()
     mocked_refresh_fitness.assert_called_once()
-    assert not population_with_growing_fitness.members == old_members
+    assert not population.members == old_members
 
 
-def test_perform_mutation(population_with_growing_fitness, mocker):
+def test_perform_mutation(configurable_population, mocker):
+    population = configurable_population(elitism=0)
     mocked_refresh_fitness = mocker.patch('src.generic.model.Population.refresh_fitness')
-    old_members = copy.deepcopy(population_with_growing_fitness.members)
-    population_with_growing_fitness.perform_mutation()
+    old_members = copy.deepcopy(population.members)
+    population.perform_mutation()
     mocked_refresh_fitness.assert_called_once()
-    assert not population_with_growing_fitness.members == old_members
+    assert not population.members == old_members
 
 
-def test_perform_crossover(population_with_growing_fitness, mocker):
+def test_perform_crossover(configurable_population, mocker):
+    population = configurable_population(elitism=0)
     mocked_refresh_fitness = mocker.patch('src.generic.model.Population.refresh_fitness')
-    old_members = copy.deepcopy(population_with_growing_fitness.members)
-    population_with_growing_fitness.perform_crossover()
+    old_members = copy.deepcopy(population.members)
+    population.perform_crossover()
     mocked_refresh_fitness.assert_called_once()
-    assert not population_with_growing_fitness.members == old_members
+    assert not population.members == old_members
 
 
 def test_generate_initial_population(empty_population, mocker):
@@ -51,9 +55,9 @@ def test_generate_initial_population(empty_population, mocker):
 
 
 @mockenv(MAX_ITERS="3", ENABLE_WANDB="True", STR_LEN="3")
-def test_train_not_successful(population_with_growing_fitness, mocker):
+def test_train_not_successful(configurable_population, mocker):
     # Test solution not being found within max iterations
-
+    population = configurable_population(elitism=0, stopping_criteria_fn=_stopping_criteria_fn)
     max_iters = 3
     id = 1
     mocked_generate_initial_population = mocker.patch('src.generic.model.Population.generate_initial_population')
@@ -65,7 +69,7 @@ def test_train_not_successful(population_with_growing_fitness, mocker):
     mocked_wandb_init = mocker.patch('wandb.init')
     mocked_wandb_log = mocker.patch('wandb.log')
 
-    winner, success, process_id = population_with_growing_fitness.train(id=id)
+    winner, success, process_id = population.train(id=id)
 
     assert mocked_generate_initial_population.call_count == 1
     assert mocked_wandb_init.call_count == 1
@@ -82,9 +86,9 @@ def test_train_not_successful(population_with_growing_fitness, mocker):
 
 
 @mockenv(MAX_ITERS="3", ENABLE_WANDB="True", STR_LEN="3")
-def test_train_successful(population_with_growing_fitness, mocker):
+def test_train_successful(configurable_population, mocker):
     # Test solution being found after first iteration
-
+    population = configurable_population(elitism=0, stopping_criteria_fn=_stopping_criteria_fn)
     id = 1
     mocked_generate_initial_population = mocker.patch('src.generic.model.Population.generate_initial_population')
     mocked_perform_selection = mocker.patch('src.generic.model.Population.perform_selection')
@@ -95,7 +99,7 @@ def test_train_successful(population_with_growing_fitness, mocker):
     mocked_wandb_init = mocker.patch('wandb.init')
     mocked_wandb_log = mocker.patch('wandb.log')
 
-    winner, success, process_id = population_with_growing_fitness.train(id=id)
+    winner, success, process_id = population.train(id=id)
 
     assert mocked_generate_initial_population.call_count == 1
     assert mocked_wandb_init.call_count == 1
@@ -109,3 +113,7 @@ def test_train_successful(population_with_growing_fitness, mocker):
     assert winner == Solution(chromosome=np.asarray([1, 1, 1]), fitness=3)
     assert success is True
     assert process_id == id
+
+
+def _stopping_criteria_fn(winner: Solution):
+    return winner.fitness == 3

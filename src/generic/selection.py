@@ -22,7 +22,7 @@ class Selection:
 
         offspring_population = []
         members_to_select = len(population.members)
-        if eval_bool(os.environ.get("ELITISM")):
+        if eval_bool(os.environ.get("ELITISM")) and population.elitism > 0:
             members_to_select = members_to_select - population.elitism
             elites: List[Solution] = _find_best(population, population.elitism)
             offspring_population.extend(elites)
@@ -52,7 +52,7 @@ class Selection:
 
         offspring_population = []
         members_to_select = len(population.members)
-        if eval_bool(os.environ.get("ELITISM")):
+        if eval_bool(os.environ.get("ELITISM")) and population.elitism > 0:
             members_to_select = members_to_select - population.elitism
             elites: List[Solution] = _find_best(population, population.elitism)
             offspring_population.extend(elites)
@@ -76,7 +76,7 @@ class Selection:
 
         offspring_population = []
         members_to_select = len(population.members)
-        if eval_bool(os.environ.get("ELITISM")):
+        if eval_bool(os.environ.get("ELITISM")) and population.elitism > 0:
             members_to_select = members_to_select - population.elitism
             elites: List[Solution] = _find_best(population, population.elitism)
             offspring_population.extend(elites)

@@ -1,4 +1,5 @@
 import os
+from typing import Callable
 from unittest import mock
 
 import numpy as np
@@ -31,7 +32,8 @@ def dummy_crossover_fn(a, b):
 def population_with_zero_fitness():
     return Population(members=[Solution(np.asarray([0, 0, 0])) for _ in range(10)], crossover_fn=dummy_crossover_fn,
                       mutation_fn=dummy_fn, fitness_fn=dummy_fitness, selection_fn=dummy_fn,
-                      initial_population_generator_fn=initial_population_generator, population_size=10, elitism=3)
+                      initial_population_generator_fn=initial_population_generator, population_size=10, elitism=3,
+                      stopping_criteria_fn=dummy_fn)
 
 
 @pytest.fixture
@@ -39,34 +41,34 @@ def population_with_identical_solutions():
     return Population(members=[Solution(np.asarray([1, 0, 1]), fitness=1) for i in range(10)],
                       crossover_fn=dummy_crossover_fn,
                       mutation_fn=dummy_fn, fitness_fn=dummy_fitness, selection_fn=dummy_fn,
-                      initial_population_generator_fn=initial_population_generator, population_size=10, elitism=3)
+                      initial_population_generator_fn=initial_population_generator, population_size=10, elitism=3,
+                      stopping_criteria_fn=dummy_fn)
 
 
 @pytest.fixture(scope="class")
-def population_with_growing_fitness():
-    population = [Solution(np.asarray([0, 0, 0, 0, 0]), fitness=0),
-                  Solution(np.asarray([1, 0, 0, 0, 0]), fitness=1),
-                  Solution(np.asarray([1, 1, 0, 0, 0]), fitness=2),
-                  Solution(np.asarray([1, 1, 1, 0, 0]), fitness=3),
-                  Solution(np.asarray([1, 1, 1, 1, 0]), fitness=4),
-                  Solution(np.asarray([1, 1, 1, 1, 1]), fitness=5)]
+def configurable_population():
+    def _population_with_growing_fitness(elitism: int, stopping_criteria_fn: Callable = dummy_fn):
+        population = [Solution(np.asarray([0, 0, 0, 0, 0]), fitness=0),
+                      Solution(np.asarray([1, 0, 0, 0, 0]), fitness=1),
+                      Solution(np.asarray([1, 1, 0, 0, 0]), fitness=2),
+                      Solution(np.asarray([1, 1, 1, 0, 0]), fitness=3),
+                      Solution(np.asarray([1, 1, 1, 1, 0]), fitness=4),
+                      Solution(np.asarray([1, 1, 1, 1, 1]), fitness=5)]
 
-    return Population(members=population,
-                      crossover_fn=dummy_crossover_fn,
-                      mutation_fn=dummy_fn, fitness_fn=dummy_fitness, selection_fn=dummy_fn,
-                      initial_population_generator_fn=initial_population_generator, population_size=10, elitism=3)
+        return Population(members=population,
+                          crossover_fn=dummy_crossover_fn,
+                          mutation_fn=dummy_fn, fitness_fn=dummy_fitness, selection_fn=dummy_fn,
+                          initial_population_generator_fn=initial_population_generator, population_size=6,
+                          elitism=elitism,
+                          stopping_criteria_fn=stopping_criteria_fn)
 
-
-@pytest.fixture(scope="class")
-def population_with_zero_elitism():
-    return Population(members=[Solution(np.asarray([1, 0, 1]), fitness=1) for i in range(10)],
-                      crossover_fn=dummy_crossover_fn,
-                      mutation_fn=dummy_fn, fitness_fn=dummy_fitness, selection_fn=dummy_fn,
-                      initial_population_generator_fn=initial_population_generator, population_size=10, elitism=0)
+    return _population_with_growing_fitness
 
 
 @pytest.fixture
 def empty_population():
     return Population(members=[], crossover_fn=dummy_crossover_fn, mutation_fn=dummy_fn, fitness_fn=dummy_fitness,
                       selection_fn=dummy_fn, initial_population_generator_fn=initial_population_generator,
-                      population_size=0, elitism=3)
+                      population_size=0, elitism=3, stopping_criteria_fn=dummy_fn)
+
+# TODO make parametrized fixtures!!!!!!!!!!!

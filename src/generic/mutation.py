@@ -41,7 +41,7 @@ class Mutation:
     def mutate_real_uniform(sequence: np.ndarray, probability=0.01) -> np.ndarray:
         # Suitable for real numbers
         # TODO simply replace value with another random value
-        yield
+        raise NotImplementedError
 
     @staticmethod
     @validate_chromosome_type(type=np.ndarray)
