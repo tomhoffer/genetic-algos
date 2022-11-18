@@ -14,14 +14,25 @@ logging.basicConfig(level=logging.INFO)
 load_dotenv()
 
 
+class InvestobotSolution(Solution):
+    def get_chromosome_tickers(self) -> np.ndarray:
+        return self.chromosome[:, 0]
+
+    def get_chromosome_amounts(self) -> np.ndarray:
+        return self.chromosome[:, 1]
+
+    def get_chromosome_timestamps(self) -> np.ndarray:
+        return self.chromosome[:, 2]
+
+
 def create_ticker_list() -> List[str]:
     df: pd.DataFrame = pd.read_csv('data.csv')
     tickers: List[str] = list(df.columns)
     return tickers[1:]
 
 
-def initial_population_generator() -> List[Solution]:
-    result: List[Solution] = []
+def initial_population_generator() -> List[InvestobotSolution]:
+    result: List[InvestobotSolution] = []
 
     max_transactions: int = int(os.environ.get("CHROMOSOME_MAX_LENGTH"))
     ticker_list: List[str] = create_ticker_list()
@@ -44,7 +55,7 @@ def initial_population_generator() -> List[Solution]:
             amount = proportions[i] * budget
             chromosome[i] = [ticker_id, amount, timestamp]
 
-        result.append(Solution(chromosome=chromosome))
+        result.append(InvestobotSolution(chromosome=chromosome))
     return result
 
 
