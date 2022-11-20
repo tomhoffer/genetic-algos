@@ -2,15 +2,18 @@ import numpy as np
 import pytest
 
 from src.generic.mutation import Mutation
+from conftest import mockenv
 
 
+@mockenv(P_MUTATION="1.0")
 def test_probability_100():
-    res = Mutation.flip_bit(np.asarray([0, 0, 0, 0, 0, 0, 0, 0]), probability=1.0)
+    res = Mutation.flip_bit(np.asarray([0, 0, 0, 0, 0, 0, 0, 0]))
     np.testing.assert_array_equal(res, np.asarray([1, 1, 1, 1, 1, 1, 1, 1]))
 
 
+@mockenv(P_MUTATION="0")
 def test_probability_0():
-    res = Mutation.flip_bit(np.asarray([0, 0, 0, 0, 0, 0, 0, 0]), probability=0)
+    res = Mutation.flip_bit(np.asarray([0, 0, 0, 0, 0, 0, 0, 0]))
     np.testing.assert_array_equal(res, np.asarray([0, 0, 0, 0, 0, 0, 0, 0]))
 
 

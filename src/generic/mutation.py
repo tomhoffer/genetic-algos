@@ -1,4 +1,5 @@
 import logging
+import os
 import random
 
 import numpy as np
@@ -10,8 +11,9 @@ class Mutation:
 
     @staticmethod
     @validate_chromosome_type(type=np.ndarray)
-    def flip_bit(sequence: np.ndarray, probability=0.01) -> np.ndarray:
+    def flip_bit(sequence: np.ndarray) -> np.ndarray:
         result = np.asarray(sequence)
+        probability = float(os.environ.get("P_MUTATION", default=0.01))
 
         with np.nditer(result, op_flags=['readwrite']) as it:
             for x in it:
@@ -23,8 +25,9 @@ class Mutation:
 
     @staticmethod
     @validate_chromosome_type(type=np.ndarray)
-    def swap(sequence: np.ndarray, probability=0.01) -> np.ndarray:
+    def swap(sequence: np.ndarray) -> np.ndarray:
         result = sequence.copy()
+        probability = float(os.environ.get("P_MUTATION", default=0.01))
 
         if random.random() < probability:
             swap_pos_1 = random.randint(0, len(sequence) - 1)
@@ -38,14 +41,14 @@ class Mutation:
 
     @staticmethod
     @validate_chromosome_type(type=np.ndarray)
-    def mutate_real_uniform(sequence: np.ndarray, probability=0.01) -> np.ndarray:
+    def mutate_real_uniform(sequence: np.ndarray) -> np.ndarray:
         # Suitable for real numbers
         # TODO simply replace value with another random value
         raise NotImplementedError
 
     @staticmethod
     @validate_chromosome_type(type=np.ndarray)
-    def mutate_real_gaussian(sequence: np.ndarray, probability=0.01, use_abs=False) -> np.ndarray:
+    def mutate_real_gaussian(sequence: np.ndarray, use_abs=False) -> np.ndarray:
         """
         Suitable for real numbers
         :param sequence: sequence to mutate
@@ -54,6 +57,8 @@ class Mutation:
         :return: mutated sequence
         """
         result = sequence.copy()
+        probability = float(os.environ.get("P_MUTATION", default=0.01))
+
         if random.random() < probability:
             logging.debug("Mutation probability hit! Mutating gene: %s...", sequence)
             rng = np.random.default_rng()
