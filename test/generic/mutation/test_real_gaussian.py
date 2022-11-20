@@ -11,6 +11,7 @@ def test_probability_100():
     before = np.asarray([1.27, 3.8, 0.4])
     after = Mutation.mutate_real_gaussian(before)
     assert_raises(AssertionError, assert_array_equal, before, after)
+    assert before.shape == after.shape
 
 
 @mockenv(P_MUTATION="0")
@@ -26,6 +27,7 @@ def test_use_absolute():
     after = Mutation.mutate_real_gaussian(before, use_abs=True)
     for x in after:
         assert x >= 0
+    assert before.shape == after.shape
 
 
 @mockenv(P_MUTATION="1.0")

@@ -11,6 +11,7 @@ def test_probability_100():
     before = np.asarray([1.27, 3.8, 0.4])
     after = Mutation.mutate_real_uniform(before, min=1, max=10)
     assert_raises(AssertionError, assert_array_equal, before, after)
+    assert before.shape == after.shape
 
 
 @mockenv(P_MUTATION="1.0")
