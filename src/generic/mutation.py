@@ -51,14 +51,15 @@ class Mutation:
         """
         result = sequence.copy()
         probability = float(os.environ.get("P_MUTATION", default=0.01))
+        rng = np.random.default_rng()
 
-        if random.random() < probability:
-            logging.debug("Mutation probability hit! Mutating gene: %s...", sequence)
-            rng = np.random.default_rng()
-            with np.nditer(result, op_flags=['readwrite']) as it:
-                for x in it:
+        with np.nditer(result, op_flags=['readwrite']) as it:
+            for x in it:
+                if random.random() < probability:
+                    logging.debug("Mutation probability hit! Mutating gene: %s...", sequence)
                     x[...] = rng.uniform(low=min, high=max, size=1)
         return result
+
 
     @staticmethod
     @validate_chromosome_type(type=np.ndarray)
@@ -71,13 +72,13 @@ class Mutation:
         """
         result = sequence.copy()
         probability = float(os.environ.get("P_MUTATION", default=0.01))
+        rng = np.random.default_rng()
 
-        if random.random() < probability:
-            logging.debug("Mutation probability hit! Mutating gene: %s...", sequence)
-            rng = np.random.default_rng()
-            with np.nditer(result, op_flags=['readwrite']) as it:
-                for x in it:
+        with np.nditer(result, op_flags=['readwrite']) as it:
+            for x in it:
+                if random.random() < probability:
+                    logging.debug("Mutation probability hit! Mutating gene: %s...", sequence)
                     x[...] = rng.normal(loc=x, scale=abs(x / 10), size=1)[0]
-            if use_abs:
-                result = np.abs(result)
+        if use_abs:
+            result = np.abs(result)
         return result
