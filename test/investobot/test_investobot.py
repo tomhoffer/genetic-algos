@@ -1,6 +1,6 @@
 from typing import List
 import numpy as np
-from src.investobot.investobot import initial_population_generator, InvestobotSolution
+from src.investobot.investobot import initial_population_generator, InvestobotSolution, mutate
 from conftest import mockenv
 
 
@@ -19,10 +19,31 @@ def test_generate_initial_population(mocker):
         assert element.chromosome.shape[0] <= 15
 
         # Timestamps within range
-        assert np.all((timestamps > 0) & (timestamps < 1000))
+        assert np.all((timestamps >= 0) & (timestamps <= 1000))
 
         # Valid ticker ids
         assert np.all((tickers >= 0) & (tickers < 3))
 
         # Budget matches up
         np.testing.assert_almost_equal(amounts.sum(), 1000, decimal=5)
+
+
+@mockenv(BUDGET="1000", START_TIMESTAMP="0", END_TIMESTAMP="1000", P_MUTATION="1.0")
+def test_mutate(mocker):
+    mocker.patch("src.investobot.investobot.create_ticker_list", return_value=['AAPL', 'GOOG', 'CNDX', 'SPY'])
+    before = np.asarray([
+        [0, 250.0, 1],
+        [1, 250.0, 250],
+        [2, 250.0, 500],
+        [3, 250.0, 1000],
+    ])
+    after = mutate(before)
+    assert before.shape == after.shape
+
+    after_timestamps = InvestobotSolution.parse_chromosome_timestamps(after)
+    after_amounts = InvestobotSolution.parse_chromosome_amounts(after)
+    after_tickers = InvestobotSolution.parse_chromosome_tickers(after)
+
+    assert np.all((after_timestamps >= 0) & (after_timestamps <= 1000))
+    assert np.all((after_tickers >= 0) & (after_tickers <= 3))
+    np.testing.assert_almost_equal(after_amounts.sum(), 1000, decimal=5)
