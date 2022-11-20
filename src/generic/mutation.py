@@ -41,18 +41,31 @@ class Mutation:
 
     @staticmethod
     @validate_chromosome_type(type=np.ndarray)
-    def mutate_real_uniform(sequence: np.ndarray) -> np.ndarray:
-        # Suitable for real numbers
-        # TODO simply replace value with another random value
-        raise NotImplementedError
-
-    @staticmethod
-    @validate_chromosome_type(type=np.ndarray)
-    def mutate_real_gaussian(sequence: np.ndarray, use_abs=False) -> np.ndarray:
+    def mutate_real_uniform(sequence: np.ndarray, min: float, max: float) -> np.ndarray:
         """
         Suitable for real numbers
         :param sequence: sequence to mutate
-        :param probability: mutation probability
+        :param min: mutated value must be >= min
+        :param max: mutated value must be <= max
+        :return: mutated sequence
+        """
+        result = sequence.copy()
+        probability = float(os.environ.get("P_MUTATION", default=0.01))
+
+        if random.random() < probability:
+            logging.debug("Mutation probability hit! Mutating gene: %s...", sequence)
+            rng = np.random.default_rng()
+            with np.nditer(result, op_flags=['readwrite']) as it:
+                for x in it:
+                    x[...] = rng.uniform(low=min, high=max, size=1)
+        return result
+
+    @staticmethod
+    @validate_chromosome_type(type=np.ndarray)
+    def mutate_real_gaussian(sequence: np.ndarray, use_abs=True) -> np.ndarray:
+        """
+        Suitable for real numbers
+        :param sequence: sequence to mutate
         :param use_abs: use abs() to prevent any negative values after mutation
         :return: mutated sequence
         """
