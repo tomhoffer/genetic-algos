@@ -15,10 +15,21 @@ def test_probability_100():
 
 
 @mockenv(P_MUTATION="1.0")
-def test_min_max():
-    before = np.asarray([1.27, 3.8, 0.4])
-    after = Mutation.mutate_real_uniform(before, min=1, max=10)
-    assert np.all((after >= 1) & (after <= 10))
+@pytest.mark.parametrize("min, max", [(1, 5), (1, 1), (5, 5)])
+def test_min_max(min, max, mocker):
+    mocker.patch("numpy.random.uniform", return_value=3)
+    before = np.asarray([1, 2, 3, 4, 5])
+    after = Mutation.mutate_real_uniform(before, min=min, max=max)
+    assert np.all((after >= min) & (after <= max))
+
+
+@mockenv(P_MUTATION="1.0")
+def test_min_max_invalid():
+    # Minimum > Maximum
+    before = np.asarray([1, 2, 3, 4, 5])
+    with pytest.raises(ValueError) as err:
+        Mutation.mutate_real_uniform(before, min=1, max=0)
+    assert str(err.value) == "Mutation cannot be performed. Min is higher than max! Skipping..."
 
 
 @mockenv(P_MUTATION="0")
