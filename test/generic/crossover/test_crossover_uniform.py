@@ -11,14 +11,16 @@ def test_uniform(mocker):
     b = Solution(np.array([1, 1, 1, 1]))
     res1, res2 = Crossover.uniform(a, b)
 
-    assert res1 is not None
-    assert res2 is not None
+    assert res1.chromosome.shape == res2.chromosome.shape == a.chromosome.shape == b.chromosome.shape
 
-    assert len(res1.chromosome) == 4
-    assert len(res2.chromosome) == 4
 
-    assert type(res1.chromosome) is np.ndarray
-    assert type(res2.chromosome) is np.ndarray
+def test_uniform_2d():
+    # Test that crossover works also for 2d arrays
+    a = Solution(np.asarray([[0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0]]))
+    b = Solution(np.asarray([[1, 1, 1], [1, 1, 1], [1, 1, 1], [1, 1, 1], [1, 1, 1]]))
+
+    res1, res2 = Crossover.uniform(a, b)
+    assert res1.chromosome.shape == res2.chromosome.shape == a.chromosome.shape == b.chromosome.shape
 
 
 def test_different_chromosome_length():

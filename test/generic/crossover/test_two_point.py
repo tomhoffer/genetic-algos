@@ -41,3 +41,14 @@ def test_two_point_odd_length(mocker, pos1, pos2, expected):
     res1, res2 = Crossover.two_point(a, b)
     np.testing.assert_array_equal(res1.chromosome, expected[0].chromosome)
     np.testing.assert_array_equal(res2.chromosome, expected[1].chromosome)
+
+
+def test_two_point_2d(mocker):
+    # Test that crossover works also for 2d arrays
+    mocker.patch("random.randint", side_effect=[0, 2])
+    a = Solution(np.asarray([[0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0]]))
+    b = Solution(np.asarray([[1, 1, 1], [1, 1, 1], [1, 1, 1], [1, 1, 1], [1, 1, 1]]))
+
+    res1, res2 = Crossover.two_point(a, b)
+    np.testing.assert_array_equal(res1.chromosome, np.asarray([[0, 0, 0], [0, 0, 0], [1, 1, 1], [1, 1, 1], [1, 1, 1]]))
+    np.testing.assert_array_equal(res2.chromosome, np.asarray([[1, 1, 1], [1, 1, 1], [0, 0, 0], [0, 0, 0], [0, 0, 0]]))

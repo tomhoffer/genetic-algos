@@ -15,8 +15,8 @@ class Crossover:
     def single_point(parent1: Solution, parent2: Solution) -> Optional[Tuple[Solution, Solution]]:
         crossover_pos = random.randint(0, len(parent1.chromosome) - 1)
 
-        offspring_chromosome1 = np.append(parent1.chromosome[:crossover_pos], parent2.chromosome[crossover_pos:])
-        offspring_chromosome2 = np.append(parent2.chromosome[:crossover_pos], parent1.chromosome[crossover_pos:])
+        offspring_chromosome1 = np.append(parent1.chromosome[:crossover_pos], parent2.chromosome[crossover_pos:], axis=0)
+        offspring_chromosome2 = np.append(parent2.chromosome[:crossover_pos], parent1.chromosome[crossover_pos:], axis=0)
         logging.debug(
             "Performing crossover operation over position %d between parents: %s %s. Results: %s, %s"
             , crossover_pos, parent1.chromosome, parent2.chromosome, offspring_chromosome1, offspring_chromosome2)
