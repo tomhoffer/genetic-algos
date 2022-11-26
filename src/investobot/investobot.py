@@ -56,9 +56,14 @@ class InvestobotSolution(Solution):
 
 @cache
 def create_ticker_list() -> List[str]:
-    df: pd.DataFrame = pd.read_csv('data.csv')
-    tickers: List[str] = list(df.columns)
-    return tickers[1:]
+    df = load_tickers()
+    return list(df.columns)
+
+
+@cache
+def load_tickers() -> pd.DataFrame:
+    df = pd.read_csv('data.csv', parse_dates=['Date'], index_col=['Date']).dropna(how='all', axis='columns')
+    return df
 
 
 def initial_population_generator() -> List[InvestobotSolution]:
@@ -90,7 +95,29 @@ def initial_population_generator() -> List[InvestobotSolution]:
 
 
 def fitness(chromosome: np.ndarray) -> float:
-    yield
+    df = load_tickers()
+    ticker_list = create_ticker_list()
+    end_timestamp = int(os.environ.get("END_TIMESTAMP"))
+    end_date: str = pd.to_datetime(end_timestamp, unit='s').strftime('%Y-%m-%d')
+
+    def fitness_per_gene(row) -> float:
+        try:
+            ticker_name: str = ticker_list[row[0]]
+        except IndexError:
+            return np.nan
+
+        invested_amount: float = row[1]
+        invested_timestamp: int = row[2]
+        invested_date: str = pd.to_datetime(invested_timestamp, unit='s').strftime('%Y-%m-%d')
+
+        return (df.loc[end_date][ticker_name] - df.loc[invested_date][ticker_name]) * invested_amount
+
+    res = np.apply_along_axis(fitness_per_gene, axis=1, arr=chromosome).sum()
+
+    if np.isnan(res):
+        # If market data is missing for any of given chromosomes
+        return np.NINF
+    return res
 
 
 def stopping_criteria_fn(solution: Solution) -> bool:
