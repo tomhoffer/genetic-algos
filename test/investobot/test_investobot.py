@@ -86,17 +86,30 @@ def test_crossover():
 
 
 @mockenv(END_TIMESTAMP="792000", BUDGET="10")  # 1970-01-10
-def test_fitness(mocker):
+def test_fitness_single(mocker):
     df = load_tickers('test/investobot/test_data.csv')
     mocker.patch('src.investobot.investobot.load_tickers', return_value=df)
 
     # Investing all budget on given ticker on the first date (all-in)
-    np.testing.assert_almost_equal(fitness(np.asarray([[0, 10, 0]])), 90, decimal=5)  # Growing value
-    np.testing.assert_almost_equal(fitness(np.asarray([[1, 10, 0]])), -90, decimal=5)  # Decreasing value
-    np.testing.assert_almost_equal(fitness(np.asarray([[2, 10, 0]])), 0, decimal=5)  # Constant value
-    np.testing.assert_almost_equal(fitness(np.asarray([[3, 10, 0]])), 90, decimal=5)  # Missing in between
+    np.testing.assert_almost_equal(fitness(np.asarray([[0, 10, 0]])), 100, decimal=5)  # Growing value
+    np.testing.assert_almost_equal(fitness(np.asarray([[1, 10, 0]])), 1, decimal=5)  # Decreasing value
+    np.testing.assert_almost_equal(fitness(np.asarray([[2, 10, 0]])), 10, decimal=5)  # Constant value
+    np.testing.assert_almost_equal(fitness(np.asarray([[3, 10, 0]])), 100, decimal=5)  # Missing in between
     np.testing.assert_almost_equal(fitness(np.asarray([[4, 10, 0]])), np.NINF, decimal=5)  # Missing at end
     np.testing.assert_almost_equal(fitness(np.asarray([[5, 10, 0]])), np.NINF, decimal=5)  # Missing at start
+
+
+@mockenv(END_TIMESTAMP="792000", BUDGET="10")  # 1970-01-10
+def test_fitness_multiple(mocker):
+    df = load_tickers('test/investobot/test_data.csv')
+    mocker.patch('src.investobot.investobot.load_tickers', return_value=df)
+
+    # Investing all budget on given ticker on the first date (all-in)
+    np.testing.assert_almost_equal(fitness(np.asarray([[0, 10, 0], [1, 10, 0]])), 101,
+                                   decimal=5)  # Growing value + Decreasing value
+
+    np.testing.assert_almost_equal(fitness(np.asarray([[0, 10, 0], [0, 10, 0]])), 200,
+                                   decimal=5)  # Growing value + Growing value = Double profit
 
 
 @mockenv(END_TIMESTAMP="105083", BUDGET="10")  # (1970-01-02)

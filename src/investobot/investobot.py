@@ -118,8 +118,12 @@ def fitness(chromosome: np.ndarray) -> float:
             # Start value is not present, unable to compute fitness
             return np.nan
 
-        res = (values_at_end[0] - values_at_invested[0]) * invested_amount
-        return res
+        try:
+            res = (values_at_end[0] / values_at_invested[0]) * invested_amount
+            return res
+        except ZeroDivisionError:
+            logging.error(
+                "Found ticker value equal to zero! Stopping fitness calculation to prevent division by zero...")
 
     res = np.apply_along_axis(fitness_per_gene, axis=1, arr=chromosome).sum()
 
