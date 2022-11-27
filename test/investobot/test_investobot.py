@@ -3,7 +3,8 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from src.investobot.investobot import initial_population_generator, InvestobotSolution, mutate, crossover, fitness
+from src.investobot.investobot import initial_population_generator, InvestobotSolution, mutate, crossover, fitness, \
+    load_tickers
 from conftest import mockenv
 
 
@@ -85,28 +86,46 @@ def test_crossover():
 
 
 @mockenv(END_TIMESTAMP="792000", BUDGET="10")  # 1970-01-10
-@pytest.mark.parametrize("ticker_values, invested_ticker, expected_fitness",
-                         [
-                             (np.linspace(1, 10, num=10), 0, 90),  # Growing stock value
-                             (np.linspace(10, 1, num=10), 0, -90),  # Decreasing stock value
-                             (np.full(10, 10), 0, 0),  # Constant stock value
-                             (np.full(10, np.nan), 0, np.NINF),  # Missing all stock values
-                             (np.asarray([1, 2, 3, 4, 5, np.nan, 7, 8, 9, 10]), 0, 90),
-                             # Missing stock value in between has no impact
-                             (np.asarray([1, 2, 3, 4, 5, 6, 7, 8, 9, np.nan]), 0, np.NINF),
-                             # Missing stock value at END_TIMESTAMP
-                             (np.linspace(1, 10, num=10), 1, np.NINF),
-                             # Missing stock column (stock with id=1 does not exist)
-                         ])
-def test_fitness(ticker_values, invested_ticker, expected_fitness, mocker):
-    dates = [f'1970-01-0{i}' if i < 10 else f'1970-01-{i}' for i in range(1, 11)]
-    data = {'Date': dates, 'AAPL': list(ticker_values)}
+def test_fitness(mocker):
+    df = load_tickers('test/investobot/test_data.csv')
+    mocker.patch('src.investobot.investobot.load_tickers', return_value=df)
+
+    # Investing all budget on given ticker on the first date (all-in)
+    np.testing.assert_almost_equal(fitness(np.asarray([[0, 10, 0]])), 90, decimal=5)  # Growing value
+    np.testing.assert_almost_equal(fitness(np.asarray([[1, 10, 0]])), -90, decimal=5)  # Decreasing value
+    np.testing.assert_almost_equal(fitness(np.asarray([[2, 10, 0]])), 0, decimal=5)  # Constant value
+    np.testing.assert_almost_equal(fitness(np.asarray([[3, 10, 0]])), 90, decimal=5)  # Missing in between
+    np.testing.assert_almost_equal(fitness(np.asarray([[4, 10, 0]])), np.NINF, decimal=5)  # Missing at end
+    np.testing.assert_almost_equal(fitness(np.asarray([[5, 10, 0]])), np.NINF, decimal=5)  # Missing at start
+
+
+@mockenv(END_TIMESTAMP="105083", BUDGET="10")  # (1970-01-02)
+def test_fitness_end_timestamp_outside_data_timeframe(mocker):
+    # Computing fitness for END_DATE outside the market data results in KeyError
+    data = {'Date': ['1970-01-01'], 'AAPL': [0]}
     df = pd.DataFrame(data=data)
     df = df.set_index('Date')
     mocker.patch('src.investobot.investobot.load_tickers', return_value=df)
 
     # Investing all budget on given ticker on the first date (all-in)
-    chromosome = np.asarray([[invested_ticker, 10, 0]])
+    chromosome = np.asarray([[0, 10, 0]])
 
+    with pytest.raises(KeyError):
+        fitness(chromosome)
+
+
+@mockenv(END_TIMESTAMP="792000", BUDGET="10")  # 1970-01-10
+def test_fitness_missing_column(mocker):
+    # Missing stock column (stock with id=1 does not exist)
+    dates = [f'1970-01-0{i}' if i < 10 else f'1970-01-{i}' for i in range(1, 11)]
+    data = {'Date': dates, 'AAPL': [i for i in range(10)]}
+    df = pd.DataFrame(data=data)
+    df = df.set_index('Date')
+    mocker.patch('src.investobot.investobot.load_tickers', return_value=df)
+    mocker.patch('src.investobot.investobot.create_ticker_list',
+                 return_value=['AAPL'])  # Needs to be mocked because of caching
+
+    # Investing all budget on given ticker on the first date (all-in)
+    chromosome = np.asarray([[1, 10, 0]])
     result = fitness(chromosome)
-    np.testing.assert_almost_equal(result, expected_fitness, decimal=5)
+    np.testing.assert_almost_equal(result, np.NINF, decimal=5)

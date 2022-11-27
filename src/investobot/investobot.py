@@ -10,8 +10,10 @@ from dotenv import load_dotenv
 from numpy.random import default_rng
 
 from src.generic.crossover import Crossover
-from src.generic.model import Solution
+from src.generic.executor import TrainingExecutor
+from src.generic.model import Solution, Hyperparams
 from src.generic.mutation import Mutation
+from src.generic.selection import Selection
 
 logging.basicConfig(level=logging.INFO)
 load_dotenv()
@@ -61,8 +63,8 @@ def create_ticker_list() -> List[str]:
 
 
 @cache
-def load_tickers() -> pd.DataFrame:
-    df = pd.read_csv('data.csv', parse_dates=['Date'], index_col=['Date']).dropna(how='all', axis='columns')
+def load_tickers(path: str = 'data.csv') -> pd.DataFrame:
+    df = pd.read_csv(path, parse_dates=['Date'], index_col=['Date']).dropna(how='all', axis='columns')
     return df
 
 
@@ -102,7 +104,7 @@ def fitness(chromosome: np.ndarray) -> float:
 
     def fitness_per_gene(row) -> float:
         try:
-            ticker_name: str = ticker_list[row[0]]
+            ticker_name: str = ticker_list[int(row[0])]
         except IndexError:
             return np.nan
 
@@ -110,7 +112,16 @@ def fitness(chromosome: np.ndarray) -> float:
         invested_timestamp: int = row[2]
         invested_date: str = pd.to_datetime(invested_timestamp, unit='s').strftime('%Y-%m-%d')
 
-        return (df.loc[end_date][ticker_name] - df.loc[invested_date][ticker_name]) * invested_amount
+        values_at_end: pd.Series = df.loc[[end_date], ticker_name]
+
+        try:
+            values_at_invested: pd.Series = df.loc[[invested_date], ticker_name]
+        except KeyError:
+            # Start value is not present, unable to compute fitness
+            return np.nan
+
+        res = (values_at_end[0] - values_at_invested[0]) * invested_amount
+        return res
 
     res = np.apply_along_axis(fitness_per_gene, axis=1, arr=chromosome).sum()
 
@@ -121,7 +132,10 @@ def fitness(chromosome: np.ndarray) -> float:
 
 
 def stopping_criteria_fn(solution: Solution) -> bool:
-    yield
+    if solution.fitness > 10:
+        return True
+    else:
+        return False
 
 
 def mutate(chromosome: np.ndarray) -> np.ndarray:
@@ -162,4 +176,12 @@ def crossover(parent1: InvestobotSolution, parent2: InvestobotSolution):
 
 
 if __name__ == "__main__":
-    initial_population_generator()
+   
+    params = Hyperparams(crossover_fn=crossover,
+                         initial_population_generator_fn=initial_population_generator,
+                         mutation_fn=mutate,
+                         selection_fn=Selection.tournament,
+                         fitness_fn=fitness, population_size=int(os.environ.get("POPULATION_SIZE")), elitism=5,
+                         stopping_criteria_fn=stopping_criteria_fn)
+
+    TrainingExecutor.run((params, 1))
