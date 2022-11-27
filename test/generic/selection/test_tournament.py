@@ -28,6 +28,13 @@ def test_all_zero_fitness(population_with_zero_fitness):
     assert result == population_with_zero_fitness.members
 
 
+def test_all_ninf_fitness(population_with_ninf_fitness):
+    # Selection works even when all Solutions have fitness == np.NINF
+    result: List[Solution] = Selection.tournament(population=population_with_ninf_fitness)
+    assert len(result) == len(population_with_ninf_fitness.members)
+    assert result == population_with_ninf_fitness.members
+
+
 def test_all_identical(population_with_identical_solutions):
     # Selection works for population with identical positive fitness values
     result: List[Solution] = Selection.tournament(population=population_with_identical_solutions)

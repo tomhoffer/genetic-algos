@@ -141,8 +141,8 @@ class Population(Hyperparams, PopulationBase):
         :return: Tuple [winner, fitness]
         """
 
-        max_fitness = 0
-        winner = None
+        max_fitness = np.NINF
+        winner = self.members[0]
         self.refresh_fitness()
         for el in self.members:
             if el.fitness > max_fitness:

@@ -4,6 +4,8 @@ import os
 import random
 from typing import List
 
+import numpy as np
+
 from src.generic.decorators import validate_population_length
 from src.generic.helpers import eval_bool
 from src.generic.model import Population, Solution
@@ -15,9 +17,9 @@ class Selection:
     @validate_population_length
     def tournament(population: Population, tournament_size=3) -> List[Solution]:
 
-        if all(el.fitness == 0 for el in population.members):
+        if all(el.fitness == np.NINF for el in population.members):
             logging.debug(
-                "Population chosen for selection has all fitness values equal to 0. Returning original population...")
+                "Population chosen for selection has all fitness values equal to negative inf. Returning original population...")
             return copy.deepcopy(population.members)
 
         offspring_population = []
@@ -29,8 +31,8 @@ class Selection:
 
         for _ in range(members_to_select):
             picked: List[Solution] = random.choices(population.members, k=tournament_size)
-            max_fitness = 0
-            winner = None
+            max_fitness = np.NINF
+            winner = picked[0]
             for el in picked:
                 if el.fitness > max_fitness:
                     winner = el
@@ -46,8 +48,9 @@ class Selection:
         logging.debug("Performing roulette wheel selection from population: %s", population.members)
         sum_fitness = sum(el.fitness for el in population.members)
 
-        if sum_fitness == 0:
-            logging.debug("Roulette selection was not possible, all fitness are zero. Returning parent population...")
+        if sum_fitness == np.NINF:
+            logging.error(
+                "Roulette selection was not possible, all fitness are negative inf. Returning parent population...")
             return copy.deepcopy(population.members)
 
         offspring_population = []
@@ -57,8 +60,12 @@ class Selection:
             elites: List[Solution] = _find_best(population, population.elitism)
             offspring_population.extend(elites)
 
-        selection_probs = [el.fitness / sum_fitness for el in population.members]
-        logging.debug("Roulette weights for population are: %s", selection_probs)
+        try:
+            selection_probs = [el.fitness / sum_fitness for el in population.members]
+            logging.debug("Roulette weights for population are: %s", selection_probs)
+        except ZeroDivisionError:
+            logging.error("Sum of fitness equal to 0, returning parent population...")
+            return copy.deepcopy(population.members)
 
         offspring_population.extend(random.choices(population.members, weights=selection_probs, k=members_to_select))
         logging.debug("Returning population after selection: %s", offspring_population)
@@ -69,9 +76,9 @@ class Selection:
     def rank(population: Population) -> List[Solution]:
         logging.debug("Performing rank-based selection from population: %s", population.members)
 
-        if all(el.fitness == 0 for el in population.members):
+        if all(el.fitness == np.NINF for el in population.members):
             logging.debug(
-                "Rank-based selection was not possible, all fitness are zero. Returning parent population...")
+                "Rank-based selection was not possible, all fitness are negative inf. Returning parent population...")
             return copy.deepcopy(population.members)
 
         offspring_population = []
