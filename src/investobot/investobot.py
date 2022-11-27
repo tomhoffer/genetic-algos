@@ -71,7 +71,7 @@ def load_tickers(path: str = 'data.csv') -> pd.DataFrame:
 def initial_population_generator() -> List[InvestobotSolution]:
     result: List[InvestobotSolution] = []
 
-    max_transactions: int = int(os.environ.get("CHROMOSOME_MAX_LENGTH"))
+    num_transactions: int = int(os.environ.get("NUM_TRANSACTIONS"))
     ticker_list: List[str] = create_ticker_list()
     budget = float(os.environ.get("BUDGET"))
     min_timestamp = int(os.environ.get("START_TIMESTAMP"))
@@ -80,13 +80,11 @@ def initial_population_generator() -> List[InvestobotSolution]:
     rng = default_rng()
     for _ in range(int(os.environ.get("POPULATION_SIZE"))):
 
-        number_of_investments = randint(1, max_transactions)
-
         # Proportions of the budget assigned to invest in each asset
-        proportions = rng.dirichlet(np.ones(number_of_investments)).flatten()
+        proportions = rng.dirichlet(np.ones(num_transactions)).flatten()
 
-        chromosome = np.empty((number_of_investments, 3))
-        for i in range(number_of_investments):
+        chromosome = np.empty((num_transactions, 3))
+        for i in range(num_transactions):
             ticker_id = randint(0, len(ticker_list) - 1)
             timestamp = randint(min_timestamp, max_timestamp)
             amount = proportions[i] * budget
@@ -176,7 +174,6 @@ def crossover(parent1: InvestobotSolution, parent2: InvestobotSolution):
 
 
 if __name__ == "__main__":
-   
     params = Hyperparams(crossover_fn=crossover,
                          initial_population_generator_fn=initial_population_generator,
                          mutation_fn=mutate,
