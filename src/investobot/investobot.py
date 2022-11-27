@@ -110,7 +110,8 @@ def fitness(chromosome: np.ndarray) -> float:
         invested_timestamp: int = row[2]
         invested_date: str = pd.to_datetime(invested_timestamp, unit='s').strftime('%Y-%m-%d')
 
-        values_at_end: pd.Series = df.loc[[end_date], ticker_name]
+        values_at_end: pd.Series = df.loc[
+            [end_date], ticker_name]  # TODO fix performance issue with .loc being too slow
 
         try:
             values_at_invested: pd.Series = df.loc[[invested_date], ticker_name]
@@ -134,7 +135,7 @@ def fitness(chromosome: np.ndarray) -> float:
 
 
 def stopping_criteria_fn(solution: Solution) -> bool:
-    if solution.fitness > 10:
+    if solution.fitness > 1000000:
         return True
     else:
         return False
@@ -185,4 +186,20 @@ if __name__ == "__main__":
                          fitness_fn=fitness, population_size=int(os.environ.get("POPULATION_SIZE")), elitism=5,
                          stopping_criteria_fn=stopping_criteria_fn)
 
-    TrainingExecutor.run((params, 1))
+    winner, success, id = TrainingExecutor.run((params, 1))
+    winner_tickers: np.ndarray = InvestobotSolution.parse_chromosome_tickers(winner.chromosome)
+    winner_amounts: np.ndarray = InvestobotSolution.parse_chromosome_amounts(winner.chromosome)
+    winner_timestamps: np.ndarray = InvestobotSolution.parse_chromosome_timestamps(winner.chromosome)
+    winner_timestamps_formatted = [pd.to_datetime(el, unit='s').strftime('%Y-%m-%d') for el in winner_timestamps]
+    end_timestamp_formatted = pd.to_datetime(int(os.environ.get("END_TIMESTAMP")), unit='s').strftime('%Y-%m-%d')
+    ticker_list = create_ticker_list()
+    df = load_tickers()
+
+    for ticker, amount, timestamp in zip(winner_tickers, winner_amounts, winner_timestamps_formatted):
+        value_invested = df.loc[[timestamp], ticker_list[int(ticker)]][0]
+        value_evaluation = df.loc[[end_timestamp_formatted], ticker_list[int(ticker)]][0]
+        logging.info(f"Ticker: {ticker_list[int(ticker)]}, "
+                     f"Amount: {amount}, "
+                     f"Value at invested ({timestamp}): {value_invested}, "
+                     f"Value at evaluation ({end_timestamp_formatted}): {value_evaluation}, "
+                     f"Profit: {value_evaluation / value_invested * amount}")

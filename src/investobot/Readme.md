@@ -19,6 +19,6 @@ The algorithm learns:
 ]
 ```
 
-- Chromosome max length: Hyperparameter (CHROMOSOME_MAX_LENGTH)
+- Number of transactions: Hyperparameter (NUM_TRANSACTIONS)
 - Max yearly trades: Hyperparameter (MAX_YEARLY_TRADES)
 - Budget: Configurable in .env
