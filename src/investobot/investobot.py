@@ -110,17 +110,20 @@ def fitness(chromosome: np.ndarray) -> float:
         invested_timestamp: int = row[2]
         invested_date: str = pd.to_datetime(invested_timestamp, unit='s').strftime('%Y-%m-%d')
 
-        values_at_end: pd.Series = df.loc[
-            [end_date], ticker_name]  # TODO fix performance issue with .loc being too slow
+        try:
+            value_at_end: pd.Series = df.at[end_date, ticker_name]
+        except KeyError:
+            logging.error("Trading dataset does not contain data for given end date: " + end_date)
+            raise KeyError
 
         try:
-            values_at_invested: pd.Series = df.loc[[invested_date], ticker_name]
+            value_at_invested: pd.Series = df.at[invested_date, ticker_name]
         except KeyError:
             # Start value is not present, unable to compute fitness
             return np.nan
 
         try:
-            res = (values_at_end[0] / values_at_invested[0]) * invested_amount
+            res = (value_at_end / value_at_invested) * invested_amount
             return res
         except ZeroDivisionError:
             logging.error(
