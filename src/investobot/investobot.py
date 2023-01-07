@@ -14,6 +14,7 @@ from src.generic.executor import TrainingExecutor
 from src.generic.model import Solution, Hyperparams
 from src.generic.mutation import Mutation
 from src.generic.selection import Selection
+from src.investobot.config import Config
 
 logging.basicConfig(level=logging.INFO)
 load_dotenv()
@@ -21,7 +22,7 @@ load_dotenv()
 
 def post_process_amounts(amounts: np.ndarray):
     # Ensure budget is fully used and not exceeded
-    amounts_diff = amounts.sum() - float(os.environ.get("BUDGET"))
+    amounts_diff = amounts.sum() - Config.get_value("BUDGET")
     amounts_diff_per_ticker = abs(amounts_diff / len(amounts))
     updated_amounts = amounts
     if amounts_diff > 0:
@@ -71,14 +72,14 @@ def load_tickers(path: str = 'data.csv') -> pd.DataFrame:
 def initial_population_generator() -> List[InvestobotSolution]:
     result: List[InvestobotSolution] = []
 
-    num_transactions: int = int(os.environ.get("NUM_TRANSACTIONS"))
+    num_transactions: int = Config.get_value('NUM_TRANSACTIONS')
     ticker_list: List[str] = create_ticker_list()
-    budget = float(os.environ.get("BUDGET"))
-    min_timestamp = int(os.environ.get("START_TIMESTAMP"))
-    max_timestamp = int(os.environ.get("END_TIMESTAMP"))
+    budget = Config.get_value('BUDGET')
+    min_timestamp = Config.get_value('START_TIMESTAMP')
+    max_timestamp = Config.get_value('END_TIMESTAMP')
 
     rng = default_rng()
-    for _ in range(int(os.environ.get("POPULATION_SIZE"))):
+    for _ in range(Config.get_value('POPULATION_SIZE')):
 
         # Proportions of the budget assigned to invest in each asset
         proportions = rng.dirichlet(np.ones(num_transactions)).flatten()
@@ -97,7 +98,7 @@ def initial_population_generator() -> List[InvestobotSolution]:
 def fitness(chromosome: np.ndarray) -> float:
     df = load_tickers()
     ticker_list = create_ticker_list()
-    end_timestamp = int(os.environ.get("END_TIMESTAMP"))
+    end_timestamp = Config.get_value("END_TIMESTAMP")
     end_date: str = pd.to_datetime(end_timestamp, unit='s').strftime('%Y-%m-%d')
 
     def fitness_per_gene(row) -> float:
@@ -152,7 +153,7 @@ def mutate(chromosome: np.ndarray) -> np.ndarray:
 
     mutated_tickers = Mutation.mutate_real_uniform(tickers, min=0, max=len(ticker_list) - 1)
     mutated_amounts = Mutation.mutate_real_gaussian(amounts, use_abs=True)
-    mutated_timestamps = Mutation.mutate_real_gaussian(timestamps, min=0, max=int(os.environ.get("END_TIMESTAMP")))
+    mutated_timestamps = Mutation.mutate_real_gaussian(timestamps, min=0, max=Config.get_value("END_TIMESTAMP"))
 
     # Ensure budget is fully used and not exceeded
     mutated_amounts = post_process_amounts(mutated_amounts)
@@ -182,11 +183,12 @@ def crossover(parent1: InvestobotSolution, parent2: InvestobotSolution):
 
 
 if __name__ == "__main__":
+    create_ticker_list()
     params = Hyperparams(crossover_fn=crossover,
                          initial_population_generator_fn=initial_population_generator,
                          mutation_fn=mutate,
                          selection_fn=Selection.tournament,
-                         fitness_fn=fitness, population_size=int(os.environ.get("POPULATION_SIZE")), elitism=5,
+                         fitness_fn=fitness, population_size=Config.get_value("POPULATION_SIZE"), elitism=5,
                          stopping_criteria_fn=stopping_criteria_fn)
 
     winner, success, id = TrainingExecutor.run((params, 1))
@@ -194,15 +196,28 @@ if __name__ == "__main__":
     winner_amounts: np.ndarray = InvestobotSolution.parse_chromosome_amounts(winner.chromosome)
     winner_timestamps: np.ndarray = InvestobotSolution.parse_chromosome_timestamps(winner.chromosome)
     winner_timestamps_formatted = [pd.to_datetime(el, unit='s').strftime('%Y-%m-%d') for el in winner_timestamps]
-    end_timestamp_formatted = pd.to_datetime(int(os.environ.get("END_TIMESTAMP")), unit='s').strftime('%Y-%m-%d')
+    end_timestamp_formatted = pd.to_datetime(Config.get_value("END_TIMESTAMP"), unit='s').strftime('%Y-%m-%d')
     ticker_list = create_ticker_list()
     df = load_tickers()
 
+    total_profit = 0
     for ticker, amount, timestamp in zip(winner_tickers, winner_amounts, winner_timestamps_formatted):
-        value_invested = df.loc[[timestamp], ticker_list[int(ticker)]][0]
-        value_evaluation = df.loc[[end_timestamp_formatted], ticker_list[int(ticker)]][0]
-        logging.info(f"Ticker: {ticker_list[int(ticker)]}, "
-                     f"Amount: {amount}, "
-                     f"Value at invested ({timestamp}): {value_invested}, "
-                     f"Value at evaluation ({end_timestamp_formatted}): {value_evaluation}, "
-                     f"Profit: {value_evaluation / value_invested * amount}")
+        try:
+            value_invested = df.at[timestamp, ticker_list[int(ticker)]]
+            value_evaluation = df.at[end_timestamp_formatted, ticker_list[int(ticker)]]
+
+            if np.isnan(value_invested) or np.isnan(value_evaluation):
+                raise KeyError
+
+            logging.info(f"Ticker: {ticker_list[int(ticker)]}, "
+                         f"Amount: {amount}, "
+                         f"Value at invested ({timestamp}): {value_invested}, "
+                         f"Value at evaluation ({end_timestamp_formatted}): {value_evaluation}, "
+                         f"Profit: {(value_evaluation / value_invested * amount) - amount}")
+
+            total_profit += value_evaluation / value_invested * amount
+        except KeyError:
+            # Ticker was invested at invalid date (whole gene is invalid)
+            logging.info(f"Invalid Ticker: {ticker_list[int(ticker)]}, "
+                         f"Amount: {amount}")
+    logging.info(f"Total profit: {total_profit}")
