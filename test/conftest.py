@@ -28,12 +28,16 @@ def dummy_crossover_fn(a, b):
     return a, a
 
 
+def dummy_population_validator_fn(members):
+    return True
+
+
 @pytest.fixture
 def population_with_zero_fitness():
     return Population(members=[Solution(np.asarray([0, 0, 0])) for _ in range(10)], crossover_fn=dummy_crossover_fn,
                       mutation_fn=dummy_fn, fitness_fn=dummy_fitness, selection_fn=dummy_fn,
                       initial_population_generator_fn=initial_population_generator, population_size=10, elitism=3,
-                      stopping_criteria_fn=dummy_fn)
+                      stopping_criteria_fn=dummy_fn, chromosome_validator_fn=dummy_population_validator_fn)
 
 
 @pytest.fixture
@@ -42,7 +46,7 @@ def population_with_ninf_fitness():
                       crossover_fn=dummy_crossover_fn,
                       mutation_fn=dummy_fn, fitness_fn=dummy_fitness, selection_fn=dummy_fn,
                       initial_population_generator_fn=initial_population_generator, population_size=10, elitism=3,
-                      stopping_criteria_fn=dummy_fn)
+                      stopping_criteria_fn=dummy_fn, chromosome_validator_fn=dummy_population_validator_fn)
 
 
 @pytest.fixture
@@ -51,7 +55,7 @@ def population_with_identical_solutions():
                       crossover_fn=dummy_crossover_fn,
                       mutation_fn=dummy_fn, fitness_fn=dummy_fitness, selection_fn=dummy_fn,
                       initial_population_generator_fn=initial_population_generator, population_size=10, elitism=3,
-                      stopping_criteria_fn=dummy_fn)
+                      stopping_criteria_fn=dummy_fn, chromosome_validator_fn=dummy_population_validator_fn)
 
 
 @pytest.fixture(scope="class")
@@ -69,7 +73,8 @@ def configurable_population():
                           mutation_fn=dummy_fn, fitness_fn=dummy_fitness, selection_fn=dummy_fn,
                           initial_population_generator_fn=initial_population_generator, population_size=6,
                           elitism=elitism,
-                          stopping_criteria_fn=stopping_criteria_fn)
+                          stopping_criteria_fn=stopping_criteria_fn,
+                          chromosome_validator_fn=dummy_population_validator_fn)
 
     return _population_with_growing_fitness
 
@@ -78,6 +83,7 @@ def configurable_population():
 def empty_population():
     return Population(members=[], crossover_fn=dummy_crossover_fn, mutation_fn=dummy_fn, fitness_fn=dummy_fitness,
                       selection_fn=dummy_fn, initial_population_generator_fn=initial_population_generator,
-                      population_size=0, elitism=3, stopping_criteria_fn=dummy_fn)
+                      population_size=0, elitism=3, stopping_criteria_fn=dummy_fn,
+                      chromosome_validator_fn=dummy_population_validator_fn)
 
 # TODO make parametrized fixtures!!!!!!!!!!!

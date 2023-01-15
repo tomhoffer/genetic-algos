@@ -1,8 +1,9 @@
 import copy
 
 import numpy as np
+import pytest
 
-from src.generic.model import Solution
+from src.generic.model import Solution, InvalidPopulationException
 from conftest import mockenv
 
 
@@ -45,13 +46,28 @@ def test_perform_crossover(configurable_population, mocker):
 
 def test_generate_initial_population(empty_population, mocker):
     mocked_refresh_fitness = mocker.patch('src.generic.model.Population.refresh_fitness')
+    mocked_is_valid_population = mocker.patch('src.generic.model.Population.is_valid_population')
     old_members = copy.deepcopy(empty_population.members)
 
     # Re-generate population again
     empty_population.generate_initial_population()
 
     mocked_refresh_fitness.assert_called_once()
+    mocked_is_valid_population.assert_called_once()
     assert not empty_population.members == old_members
+
+
+def test_generate_initial_population_invalid(empty_population, mocker):
+    # Population is always invalid, exception is Raised
+    mocked_refresh_fitness = mocker.patch('src.generic.model.Population.refresh_fitness')
+    mocked_is_valid_population = mocker.patch('src.generic.model.Population.is_valid_population')
+    mocked_is_valid_population.return_value = False
+
+    with pytest.raises(InvalidPopulationException):
+        empty_population.generate_initial_population()
+
+    assert mocked_is_valid_population.call_count == 50
+    assert mocked_refresh_fitness.call_count == 0
 
 
 @mockenv(MAX_ITERS="3", ENABLE_WANDB="True", STR_LEN="3")

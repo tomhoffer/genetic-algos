@@ -1,5 +1,4 @@
 import logging
-import os
 from functools import cache
 from random import randint
 from typing import List
@@ -65,8 +64,18 @@ def create_ticker_list() -> List[str]:
 
 @cache
 def load_tickers(path: str = 'data.csv') -> pd.DataFrame:
-    df = pd.read_csv(path, parse_dates=['Date'], index_col=['Date']).dropna(how='all', axis='columns')
-    return df
+    df = pd.read_csv(path, parse_dates=['Date'], index_col=['Date'])
+
+    # Create entries even for dates when ticker market was closed (all days within particular year)
+    all_days = pd.date_range(df.index.min(), df.index.max(), freq='D')
+    df = df.reindex(all_days)
+
+    # Fill in 'holes' in dataframe presenting dates when ticker market was closed
+    df = df.fillna(method='ffill')
+
+    # Remove columns with too few values
+    minimum_value_count = df.count().quantile(0.45)
+    return df.dropna(thresh=minimum_value_count, axis='columns')
 
 
 def initial_population_generator() -> List[InvestobotSolution]:
@@ -182,6 +191,24 @@ def crossover(parent1: InvestobotSolution, parent2: InvestobotSolution):
     )
 
 
+def is_valid_solution(solution: InvestobotSolution) -> bool:
+    df = load_tickers()
+    ticker_list: List[str] = create_ticker_list()
+    tickers: np.ndarray = InvestobotSolution.parse_chromosome_tickers(solution.chromosome)
+    timestamps: np.ndarray = InvestobotSolution.parse_chromosome_timestamps(solution.chromosome)
+
+    for ticker, timestamp in zip(tickers, timestamps):
+        try:
+            timestamp_formatted = pd.to_datetime(timestamp, unit='s').strftime('%Y-%m-%d')
+            value_invested = df.at[timestamp_formatted, ticker_list[int(ticker)]]
+            if np.isnan(value_invested):
+                raise KeyError
+        except KeyError:
+            logging.debug("Invalid gene created, skipping operation... ", timestamp_formatted, ticker_list[int(ticker)])
+            return False
+    return True
+
+
 if __name__ == "__main__":
     create_ticker_list()
     params = Hyperparams(crossover_fn=crossover,
@@ -189,7 +216,7 @@ if __name__ == "__main__":
                          mutation_fn=mutate,
                          selection_fn=Selection.tournament,
                          fitness_fn=fitness, population_size=Config.get_value("POPULATION_SIZE"), elitism=5,
-                         stopping_criteria_fn=stopping_criteria_fn)
+                         stopping_criteria_fn=stopping_criteria_fn, chromosome_validator_fn=is_valid_solution)
 
     winner, success, id = TrainingExecutor.run((params, 1))
     winner_tickers: np.ndarray = InvestobotSolution.parse_chromosome_tickers(winner.chromosome)

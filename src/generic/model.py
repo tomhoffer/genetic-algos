@@ -1,3 +1,4 @@
+import copy
 import logging
 import os
 from abc import ABC, abstractmethod
@@ -9,6 +10,10 @@ import wandb
 from src.generic.helpers import eval_bool
 
 
+class InvalidPopulationException(Exception):
+    pass
+
+
 @dataclass
 class Hyperparams:
     fitness_fn: Callable
@@ -17,6 +22,7 @@ class Hyperparams:
     selection_fn: Callable
     crossover_fn: Callable
     stopping_criteria_fn: Callable
+    chromosome_validator_fn: Callable
     population_size: int
     elitism: int
 
@@ -88,9 +94,11 @@ class Population(Hyperparams, PopulationBase):
         self.generate_initial_population()
 
         for i in range(int(os.environ.get("MAX_ITERS"))):
+            last_valid_state: List[Solution] = copy.deepcopy(self.members)
             self.perform_selection()
             self.perform_crossover()
             self.perform_mutation()
+
             winner, winner_fitness = self.get_winner()
 
             if eval_bool(os.environ.get("ENABLE_WANDB")):
@@ -109,6 +117,16 @@ class Population(Hyperparams, PopulationBase):
 
     def generate_initial_population(self):
         self.members = self.initial_population_generator_fn()
+        max_attempts = 50
+        attempt = 1
+        while attempt <= max_attempts and not self.is_valid_population():
+            self.members = self.initial_population_generator_fn()
+            attempt += 1
+
+        if attempt > max_attempts:
+            logging.error("Unable to generate initial population within max number of attempts, quitting...")
+            raise InvalidPopulationException
+
         self.refresh_fitness()
 
     def refresh_fitness(self):
@@ -149,3 +167,12 @@ class Population(Hyperparams, PopulationBase):
                 winner = el
                 max_fitness = el.fitness
         return winner, max_fitness
+
+    def is_valid_population(self) -> bool:
+        """
+            :return: True if all population members are valid
+        """
+        for member in self.members:
+            if not self.chromosome_validator_fn(member):
+                return False
+        return True

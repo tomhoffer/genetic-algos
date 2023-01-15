@@ -4,7 +4,7 @@ import pandas as pd
 import pytest
 
 from src.investobot.investobot import initial_population_generator, InvestobotSolution, mutate, crossover, fitness, \
-    load_tickers
+    load_tickers, is_valid_solution
 from conftest import mockenv
 
 
@@ -142,3 +142,22 @@ def test_fitness_missing_column(mocker):
     chromosome = np.asarray([[1, 10, 0]])
     result = fitness(chromosome)
     np.testing.assert_almost_equal(result, np.NINF, decimal=5)
+
+
+@mockenv(END_TIMESTAMP="792000", BUDGET="10")  # 1970-01-10
+def test_validate_solution(mocker):
+    df = load_tickers('test/investobot/test_data.csv')
+    mocker.patch('src.investobot.investobot.load_tickers', return_value=df)
+    mocker.patch("src.investobot.investobot.create_ticker_list", return_value=df.columns)
+
+    # Value at invested is nan (missing_in_middle, 1970-01-05)
+    solution = InvestobotSolution(chromosome=np.asarray([[3, 10, 385523]]))
+    assert not is_valid_solution(solution)
+
+    # Invalid date (stock market data is missing for 1970-01-11)
+    solution = InvestobotSolution(chromosome=np.asarray([[1, 10, 903923]]))
+    assert not is_valid_solution(solution)
+
+    # Valid date with valid value (increasing, 01-01-1970)
+    solution = InvestobotSolution(chromosome=np.asarray([[0, 10, 39923]]))
+    assert is_valid_solution(solution)

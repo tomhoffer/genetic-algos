@@ -22,7 +22,8 @@ class TrainingExecutor:
                        initial_population_generator_fn=params.initial_population_generator_fn,
                        selection_fn=params.selection_fn, mutation_fn=params.mutation_fn,
                        crossover_fn=params.crossover_fn, members=[], population_size=params.population_size,
-                       elitism=params.elitism, stopping_criteria_fn=params.stopping_criteria_fn)
+                       elitism=params.elitism, stopping_criteria_fn=params.stopping_criteria_fn,
+                       chromosome_validator_fn=params.chromosome_validator_fn)
 
         return p.train(id=process_id)
 
