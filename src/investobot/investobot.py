@@ -66,13 +66,6 @@ def create_ticker_list() -> List[str]:
 def load_tickers(path: str = 'data.csv') -> pd.DataFrame:
     df = pd.read_csv(path, parse_dates=['Date'], index_col=['Date'])
 
-    # Create entries even for dates when ticker market was closed (all days within particular year)
-    all_days = pd.date_range(df.index.min(), df.index.max(), freq='D')
-    df = df.reindex(all_days)
-
-    # Fill in 'holes' in dataframe presenting dates when ticker market was closed
-    df = df.fillna(method='ffill')
-
     # Remove columns with too few values
     minimum_value_count = df.count().quantile(0.45)
     return df.dropna(thresh=minimum_value_count, axis='columns')
