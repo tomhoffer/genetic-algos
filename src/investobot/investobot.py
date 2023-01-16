@@ -1,4 +1,5 @@
 import logging
+from datetime import datetime
 from functools import cache
 from random import randint
 from typing import List
@@ -101,7 +102,7 @@ def fitness(chromosome: np.ndarray) -> float:
     df = load_tickers()
     ticker_list = create_ticker_list()
     end_timestamp = Config.get_value("END_TIMESTAMP")
-    end_date: str = pd.to_datetime(end_timestamp, unit='s').strftime('%Y-%m-%d')
+    end_date: str = datetime.fromtimestamp(end_timestamp).strftime('%Y-%m-%d')
 
     def fitness_per_gene(row) -> float:
         try:
@@ -111,7 +112,7 @@ def fitness(chromosome: np.ndarray) -> float:
 
         invested_amount: float = row[1]
         invested_timestamp: int = row[2]
-        invested_date: str = pd.to_datetime(invested_timestamp, unit='s').strftime('%Y-%m-%d')
+        invested_date: str = datetime.fromtimestamp(invested_timestamp).strftime('%Y-%m-%d')
 
         try:
             value_at_end: pd.Series = df.at[end_date, ticker_name]
@@ -141,7 +142,7 @@ def fitness(chromosome: np.ndarray) -> float:
 
 
 def stopping_criteria_fn(solution: Solution) -> bool:
-    if solution.fitness > 1000000:
+    if solution.fitness > 1000000000:
         return True
     else:
         return False
@@ -192,7 +193,7 @@ def is_valid_solution(solution: InvestobotSolution) -> bool:
 
     for ticker, timestamp in zip(tickers, timestamps):
         try:
-            timestamp_formatted = pd.to_datetime(timestamp, unit='s').strftime('%Y-%m-%d')
+            timestamp_formatted = datetime.fromtimestamp(timestamp).strftime('%Y-%m-%d')
             value_invested = df.at[timestamp_formatted, ticker_list[int(ticker)]]
             if np.isnan(value_invested):
                 raise KeyError
@@ -215,8 +216,8 @@ if __name__ == "__main__":
     winner_tickers: np.ndarray = InvestobotSolution.parse_chromosome_tickers(winner.chromosome)
     winner_amounts: np.ndarray = InvestobotSolution.parse_chromosome_amounts(winner.chromosome)
     winner_timestamps: np.ndarray = InvestobotSolution.parse_chromosome_timestamps(winner.chromosome)
-    winner_timestamps_formatted = [pd.to_datetime(el, unit='s').strftime('%Y-%m-%d') for el in winner_timestamps]
-    end_timestamp_formatted = pd.to_datetime(Config.get_value("END_TIMESTAMP"), unit='s').strftime('%Y-%m-%d')
+    winner_timestamps_formatted = [datetime.fromtimestamp(el).strftime('%Y-%m-%d') for el in winner_timestamps]
+    end_timestamp_formatted = datetime.fromtimestamp(Config.get_value("END_TIMESTAMP")).strftime('%Y-%m-%d')
     ticker_list = create_ticker_list()
     df = load_tickers()
 

@@ -94,7 +94,6 @@ class Population(Hyperparams, PopulationBase):
         self.generate_initial_population()
 
         for i in range(int(os.environ.get("MAX_ITERS"))):
-            last_valid_state: List[Solution] = copy.deepcopy(self.members)
             self.perform_selection()
             self.perform_crossover()
             self.perform_mutation()
