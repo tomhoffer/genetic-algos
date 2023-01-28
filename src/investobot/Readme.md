@@ -7,6 +7,10 @@ The algorithm learns:
 - What proportion of money to invest into each asset
 - When to invest into particular assets
 
+# Prerequisites
+Investobot requires offline stock trading data to be downloaded and stored in ./data.csv.
+
+
 # Chromosome structure
 
 ```
@@ -19,6 +23,11 @@ The algorithm learns:
 ]
 ```
 
-- Number of transactions: Hyperparameter (NUM_TRANSACTIONS)
-- Max yearly trades: Hyperparameter (MAX_YEARLY_TRADES)
-- Budget: Configurable in .env
+Configurable parameters (.env):
+- Number of transactions: NUM_TRANSACTIONS
+- Max yearly trades: MAX_YEARLY_TRADES
+- Amount of money to invest: BUDGET
+- Earliest possible date for any of the investments: START_TIMESTAMP
+- Date of evaluation (same for all investments): END_TIMESTAMP
+
+See `config.py` for data types of parameters mentioned above.
