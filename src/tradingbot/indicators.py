@@ -41,3 +41,15 @@ class Indicators:
             return Decision.SELL
         return Decision.INCONCLUSIVE
 
+    @staticmethod
+    def decide_cmf(cmf_value: float) -> Decision:
+        """
+        Chaikin Money Flow indicator: https://www.investopedia.com/ask/answers/071414/whats-difference-between-chaikin-money-flow-cmf-and-money-flow-index-mfi.asp
+        :return: Signal to buy or sell based on CMF
+        """
+
+        if cmf_value > 0.2:
+            return Decision.SELL
+        if cmf_value < -0.2:
+            return Decision.BUY
+        return Decision.INCONCLUSIVE
