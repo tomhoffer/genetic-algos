@@ -20,3 +20,24 @@ class Indicators:
         if mfi_value <= 20:
             return Decision.BUY
         return Decision.INCONCLUSIVE
+
+    @staticmethod
+    def decide_adi(adi_start: float, adi_end: float, ticker_start: float, ticker_end: float) -> Decision:
+        """
+        Accumulation/Distribution Indicator: https://www.investopedia.com/terms/a/accumulationdistribution.asp
+        return: Signal to buy or sell based on ADI
+        :param adi_start: Value of ADI indicator at the beginning of the window (e.g. window =7d, adi_start = adi 7 days ago)
+        :param adi_end: Value of ADI indicator at the end of the window (adi_start = adi now)
+        :param ticker_start: Ticker price at the beginning of the window (e.g. window =7d, ticker_start = price 7 days ago)
+        :param ticker_end: Ticker price at the end of the window (ticker_end = current price)
+        """
+
+        trend_adi = adi_end - adi_start
+        trend_price = ticker_end - ticker_start
+
+        if trend_price <= 0 < trend_adi:
+            return Decision.BUY
+        if trend_price >= 0 > trend_adi:
+            return Decision.SELL
+        return Decision.INCONCLUSIVE
+
