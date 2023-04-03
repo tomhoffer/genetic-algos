@@ -92,6 +92,30 @@ class Indicators:
             return Decision.INCONCLUSIVE
         return Decision.BUY if macd_value > macd_signal_value else Decision.SELL
 
+    @staticmethod
+    def decide_nvi(nvi_value: float, nvi_ema_255_value: float) -> Decision:
+        """
+        Negative volume indicator: https://www.warriortrading.com/negative-volume-index-nvi-indicator/
+        :param nvi_value:
+        :param nvi_ema_255_value: 255d Exponential moving average of NVI
+        :return: Signal to buy or sell based on NVI
+        """
+        if nvi_value == nvi_ema_255_value:
+            return Decision.INCONCLUSIVE
+        return Decision.BUY if nvi_value > nvi_ema_255_value else Decision.SELL
+
+    @staticmethod
+    def decide_vwap(vwap_value: float, ticker_price: float) -> Decision:
+        """
+        Volume-Weighted Average Price https://www.investopedia.com/terms/v/vwap.asp
+        :param vwap_value:
+        :param ticker_price:
+        :return: Signal to buy or sell based on VWAP and current stock price
+        """
+        if ticker_price == vwap_value:
+            return Decision.INCONCLUSIVE
+        return Decision.BUY if ticker_price < vwap_value else Decision.SELL
+
 
 class Sentiment:
     @staticmethod
