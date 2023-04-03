@@ -9,6 +9,10 @@ class Decision(Enum):
 
 class Indicators:
 
+    # TODO Current implementation is based on binary decisions of each indicators.
+    #  Indicators however give us information on how strong the buy/sell signal is.
+    #  Return the signal strength instead of binary decision.
+
     @staticmethod
     def decide_mfi(mfi_value: float) -> Decision:
         """
@@ -53,3 +57,45 @@ class Indicators:
         if cmf_value < -0.2:
             return Decision.BUY
         return Decision.INCONCLUSIVE
+
+    @staticmethod
+    def decide_em(em_value: float) -> Decision:  # TODO make thresholds trainable parameters
+        """
+        Ease of movement indicator: https://www.investopedia.com/terms/e/easeofmovement.asp
+        :return: Signal to buy or sell based on EM
+        """
+        if em_value > 0.1:
+            return Decision.BUY
+        if em_value < -0.1:
+            return Decision.SELL
+        return Decision.INCONCLUSIVE
+
+    @staticmethod
+    def decide_vpt(vpt_value: float, vpt_sma_value: float) -> Decision:
+        """
+        Volume Price Trend Indicator: https://www.investopedia.com/terms/v/vptindicator.asp
+        :param vpt_value:
+        :param vpt_sma_value: Simple moving average of the VPT
+        :return: Signal to buy or sell based on VPT and its SMA
+        """
+        if vpt_value == vpt_sma_value:
+            return Decision.INCONCLUSIVE
+        return Decision.BUY if vpt_value > vpt_sma_value else Decision.SELL
+
+    @staticmethod
+    def decide_macd(macd_value: float, macd_signal_value: float) -> Decision:
+        """
+        Moving Average Convergence Divergence indicator: https://www.investopedia.com/ask/answers/122414/what-moving-average-convergence-divergence-macd-formula-and-how-it-calculated.asp
+        :return: Signal to buy or sell based on MACD
+        """
+        if macd_value == macd_signal_value:
+            return Decision.INCONCLUSIVE
+        return Decision.BUY if macd_value > macd_signal_value else Decision.SELL
+
+
+class Sentiment:
+    @staticmethod
+    def decide_sentiment(sentiment_value: float) -> Decision:
+        if sentiment_value == 0.5:
+            return Decision.INCONCLUSIVE
+        return Decision.BUY if sentiment_value > 0.5 else Decision.SELL
