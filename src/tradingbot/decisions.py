@@ -116,6 +116,110 @@ class Indicators:
             return Decision.INCONCLUSIVE
         return Decision.BUY if ticker_price < vwap_value else Decision.SELL
 
+    @staticmethod
+    def decide_death_cross(sma_50_value: float, sma_200_value: float) -> Decision:
+        """
+        Death cross pattern: https://www.investopedia.com/terms/d/deathcross.asp
+        :param sma_50_value: Simple moving average (50d)
+        :param sma_200_value: Simple moving average (200d)
+        :return: Decision to sell based on death cross pattern
+        """
+        return Decision.SELL if sma_50_value <= sma_200_value else Decision.INCONCLUSIVE
+
+    @staticmethod
+    def decide_golden_cross(sma_50_value: float, sma_200_value: float) -> Decision:
+        """
+        Golden cross pattern: https://www.investopedia.com/terms/g/goldencross.asp
+        :param sma_50_value: Simple moving average (50d)
+        :param sma_200_value: Simple moving average (200d)
+        :return: Decision to buy based on golden cross pattern
+        """
+        return Decision.BUY if sma_50_value >= sma_200_value else Decision.INCONCLUSIVE
+
+    @staticmethod
+    def decide_sma_fast(sma_12_value: float, ticker_price: float) -> Decision:
+        """
+        Simple moving average (12d): https://www.indiainfoline.com/knowledge-center/trading-account/what-is-a-simple-moving-average-trading-strategy
+        :param sma_12_value: Simple moving average (12d)
+        :param ticker_price:
+        :return: Decision to buy or sell based on Simple moving average (12d)
+        """
+        if sma_12_value == ticker_price:
+            return Decision.INCONCLUSIVE
+        return Decision.BUY if ticker_price > sma_12_value else Decision.SELL
+
+    @staticmethod
+    def decide_sma_slow(sma_26_value: float, ticker_price: float) -> Decision:
+        """
+        Simple moving average (26d): https://www.indiainfoline.com/knowledge-center/trading-account/what-is-a-simple-moving-average-trading-strategy
+        :param sma_26_value: Simple moving average (26d)
+        :param ticker_price:
+        :return: Decision to buy or sell based on Simple moving average (26d)
+        """
+        if sma_26_value == ticker_price:
+            return Decision.INCONCLUSIVE
+        return Decision.BUY if ticker_price > sma_26_value else Decision.SELL
+
+    @staticmethod
+    def decide_ema_20_vs_50(ema_20_value: float, ema_50_value: float, ticker_price: float) -> Decision:
+        """
+        Exponential moving average 20d vs 50d: https://tradingstrategyguides.com/exponential-moving-average-strategy/
+        :param ema_20_value:
+        :param ema_50_value:
+        :return: Decision to buy or sell based on EMA 20d, EMA 50d and the current ticker price
+        """
+        if ticker_price > ema_20_value > ema_50_value:
+            return Decision.BUY
+
+        if ema_50_value > ema_20_value > ticker_price:
+            return Decision.SELL
+
+        return Decision.INCONCLUSIVE
+
+    @staticmethod
+    def decide_adx(adx_value: float, adx_pos_value: float, adx_neg_value: float) -> Decision:
+        """
+        Average Directional Index https://www.investopedia.com/terms/a/adx.asp
+        :param adx_value:
+        :param adx_pos_value:
+        :param adx_neg_value:
+        :return: Decision to buy or sell based on ADX indicator
+        """
+
+        is_trend_strong = adx_value > 25
+        is_trend_weak = adx_value < 20
+        is_trend_inconclusive = not (is_trend_strong or is_trend_weak)
+
+        if is_trend_weak:
+            return Decision.INCONCLUSIVE
+
+        if (is_trend_strong or is_trend_inconclusive) and adx_pos_value > adx_neg_value:
+            return Decision.BUY
+
+        if (is_trend_strong or is_trend_inconclusive) and adx_neg_value > adx_pos_value:
+            return Decision.SELL
+
+    @staticmethod
+    def decide_vi(vortex_diff_value: float) -> Decision:
+        """
+        Vortex indicator https://www.investopedia.com/terms/v/vortex-indicator-vi.asp
+        :param vortex_diff_value:
+        :return: Decision to buy or sell based on Vortex indicator
+        """
+        if vortex_diff_value == 0:
+            return Decision.INCONCLUSIVE
+        return Decision.BUY if vortex_diff_value > 0 else Decision.SELL
+
+    @staticmethod
+    def decide_trix(trix_value: float) -> Decision:
+        """
+        Triple Exponential Average https://www.investopedia.com/terms/t/trix.asp
+        :param trix_value:
+        :return: Decision based on TRIX indicator
+        """
+        if trix_value == 0:
+            return Decision.INCONCLUSIVE
+        return Decision.BUY if trix_value > 0 else Decision.SELL
 
 class Sentiment:
     @staticmethod
