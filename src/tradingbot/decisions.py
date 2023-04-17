@@ -1,18 +1,21 @@
-from enum import Enum
+import pandas
+from enum import IntEnum
+from typing import Dict
+
+from src.tradingbot.config import Config
 
 
-class Decision(Enum):
+class Decision(IntEnum):
     BUY = 1
     SELL = -1
     INCONCLUSIVE = 0
 
 
-class Indicators:
+class TradingStrategies:
 
     # TODO Current implementation is based on binary decisions of each indicators.
     #  Indicators however give us information on how strong the buy/sell signal is.
     #  Return the signal strength instead of binary decision.
-
     @staticmethod
     def decide_mfi(mfi_value: float) -> Decision:
         """
@@ -221,7 +224,7 @@ class Indicators:
             return Decision.INCONCLUSIVE
         return Decision.BUY if trix_value > 0 else Decision.SELL
 
-    def perform_decisions_for_row(self, row: pandas.DataFrame) -> Dict:
+    def perform_decisions_for_row(self, row: pandas.Series) -> Dict:
         result_obj = {}
         ticker_name = Config.get_value("TRADED_TICKER_NAME")
         result_obj['mfi'] = self.decide_mfi(row['volume_mfi'])
