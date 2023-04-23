@@ -19,6 +19,7 @@ from src.generic.selection import Selection
 from src.tradingbot.config import Config
 from src.tradingbot.decisions import TradingStrategies, Decision
 
+pd.options.mode.chained_assignment = None  # Disable SettingWithCopyWarning
 logging.basicConfig(level=logging.INFO)
 load_dotenv()
 
@@ -110,24 +111,28 @@ def fitness(chromosome: np.ndarray) -> float:
     end_date: str = timestamp_to_str(Config.get_value("END_TIMESTAMP"))
     start_date: str = timestamp_to_str(Config.get_value("START_TIMESTAMP"))
     evaluation_df: pd.DataFrame = load_ticker_data()[start_date:end_date]
+    evaluation_df['datetime'] = evaluation_df.index
+    row_np_index = dict(zip(evaluation_df.columns, list(range(0, len(evaluation_df.columns)))))
+    evaluation_data: np.ndarray = evaluation_df.to_numpy()
     ts = TradingStrategies()
     solution = TradingbotSolution(chromosome=chromosome, account_balance=Config.get_value('BUDGET'))
 
-    # Decide on each day of training period
-    for row_datetime, row in evaluation_df.iterrows():
+    def decide_row(row: np.array):
         # Make decision based on all trading strategies and their weights
-        decisions: np.array = np.array(list(ts.perform_decisions_for_row(row).values()))
+        decisions: np.array = np.array(list(ts.perform_decisions_for_row(row, row_np_index).values()))
         decisions_sum = np.sum(np.multiply(chromosome, decisions))
         result = Decision.BUY if decisions_sum > 0 else Decision.SELL if decisions_sum < 0 else Decision.INCONCLUSIVE
         logging.debug("Result based on individual decisions: %s", result)
 
         if result == Decision.INCONCLUSIVE:
-            continue
+            return
         elif result == Decision.BUY:
-            solution.buy(datetime=timestamp_to_str(row_datetime), amount=Config.get_value("TRADE_SIZE"))
+            solution.buy(datetime=timestamp_to_str(row[row_np_index['datetime']]),
+                         amount=Config.get_value("TRADE_SIZE"))
         elif result == Decision.SELL:
-            solution.sell(datetime=timestamp_to_str(row_datetime))
+            solution.sell(datetime=timestamp_to_str(row[row_np_index['datetime']]))
 
+    np.apply_along_axis(decide_row, axis=1, arr=evaluation_data)
     # Close all trades at the end of the period to evaluate solution performance
     solution.sell_all(datetime=end_date)
     solution.fitness = solution.account_balance
@@ -142,13 +147,19 @@ def chromosome_validator_fn(solution: TradingbotSolution) -> bool:
     return np.all((solution.chromosome >= 0) & (solution.chromosome <= 1))
 
 
+def mutate(chromosome: np.ndarray) -> np.ndarray:
+    return Mutation.mutate_real_gaussian(chromosome, use_abs=True, max=1.0, min=0)
+
+
 if __name__ == "__main__":
-    params = Hyperparams(crossover_fn=Crossover.uniform,
+    params = Hyperparams(crossover_fn=Crossover.two_point,
                          initial_population_generator_fn=initial_population_generator,
-                         mutation_fn=Mutation.mutate_real_gaussian,
+                         mutation_fn=mutate,
                          selection_fn=Selection.tournament,
                          fitness_fn=fitness, population_size=Config.get_value("POPULATION_SIZE"), elitism=5,
                          stopping_criteria_fn=stopping_criteria_fn, chromosome_validator_fn=chromosome_validator_fn)
 
+    logging.info("Training on period: %s - %s", timestamp_to_str(Config.get_value("START_TIMESTAMP")),
+                 timestamp_to_str(Config.get_value("END_TIMESTAMP")))
     winner, success, id = TrainingExecutor.run((params, 1))
     logging.info("Found winner with weights %s and profit %s", winner.chromosome, winner.fitness)
