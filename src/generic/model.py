@@ -1,4 +1,3 @@
-import copy
 import logging
 import os
 from abc import ABC, abstractmethod
@@ -94,10 +93,11 @@ class Population(Hyperparams, PopulationBase):
         self.generate_initial_population()
 
         for i in range(int(os.environ.get("MAX_ITERS"))):
+            self.refresh_fitness()
             self.perform_selection()
             self.perform_crossover()
             self.perform_mutation()
-
+            self.refresh_fitness()
             winner, winner_fitness = self.get_winner()
 
             if eval_bool(os.environ.get("ENABLE_WANDB")):
@@ -111,7 +111,7 @@ class Population(Hyperparams, PopulationBase):
                 break
         if eval_bool(os.environ.get("ENABLE_WANDB")):
             run.finish()
-
+        self.refresh_fitness()
         return winner, success, id
 
     def generate_initial_population(self):
@@ -126,8 +126,6 @@ class Population(Hyperparams, PopulationBase):
             logging.error("Unable to generate initial population within max number of attempts, quitting...")
             raise InvalidPopulationException
 
-        self.refresh_fitness()
-
     def refresh_fitness(self):
         for individual in self.members:
             individual.fitness = self.fitness_fn(individual.chromosome)
@@ -135,11 +133,9 @@ class Population(Hyperparams, PopulationBase):
     def perform_mutation(self):
         for individual in self.members:
             individual.chromosome = self.mutation_fn(individual.chromosome)
-        self.refresh_fitness()
 
     def perform_selection(self):
         self.members = self.selection_fn(self)
-        self.refresh_fitness()
 
     def perform_crossover(self):
         middle_point = len(self.members) // 2
@@ -151,7 +147,6 @@ class Population(Hyperparams, PopulationBase):
             offsprings.append(offspring1)
             offsprings.append(offspring2)
         self.members = offsprings
-        self.refresh_fitness()
 
     def get_winner(self) -> Tuple[Solution, int]:
         """
@@ -160,7 +155,6 @@ class Population(Hyperparams, PopulationBase):
 
         max_fitness = np.NINF
         winner = self.members[0]
-        self.refresh_fitness()
         for el in self.members:
             if el.fitness > max_fitness:
                 winner = el
