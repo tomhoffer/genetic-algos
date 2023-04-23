@@ -1,6 +1,6 @@
 import pandas
 from enum import IntEnum
-from typing import Dict
+from typing import Dict, List
 
 from src.tradingbot.config import Config
 
@@ -224,34 +224,42 @@ class TradingStrategies:
             return Decision.INCONCLUSIVE
         return Decision.BUY if trix_value > 0 else Decision.SELL
 
-    def perform_decisions_for_row(self, row: pandas.Series) -> Dict:
+    def perform_decisions_for_row(self, row: pandas.Series, row_np_index: Dict) -> Dict:
         result_obj = {}
         ticker_name = Config.get_value("TRADED_TICKER_NAME")
-        result_obj['mfi'] = self.decide_mfi(row['volume_mfi'])
-        result_obj['adi'] = self.decide_adi(adi_start=row['volume_adi_7d_ago'], adi_end=row['volume_adi'],
-                                            ticker_start=row[f"{ticker_name}_Close_7d_ago"],
-                                            ticker_end=row[f"{ticker_name}_Close"])
-        result_obj['cmf'] = self.decide_cmf(row['volume_cmf'])
-        result_obj['em'] = self.decide_cmf(row['volume_em'])
-        result_obj['vpt'] = self.decide_vpt(vpt_value=row['volume_vpt'], vpt_sma_value=row['volume_vpt_sma'])
-        result_obj['macd'] = self.decide_macd(macd_value=row['trend_macd'], macd_signal_value=row['trend_macd_signal'])
-        result_obj['nvi'] = self.decide_nvi(nvi_value=row['volume_nvi'], nvi_ema_255_value=row['trend_nvi_ema_255'])
-        result_obj['vwap'] = self.decide_vwap(vwap_value=row['volume_vwap'], ticker_price=row[f"{ticker_name}_Close"])
-        result_obj['death_cross'] = self.decide_death_cross(sma_50_value=row['trend_sma_50'],
-                                                            sma_200_value=row['trend_sma_200'])
-        result_obj['golden_cross'] = self.decide_golden_cross(sma_50_value=row['trend_sma_50'],
-                                                              sma_200_value=row['trend_sma_200'])
-        result_obj['sma_fast'] = self.decide_sma_fast(sma_12_value=row['trend_sma_fast'],
-                                                      ticker_price=row[f"{ticker_name}_Close"])
-        result_obj['sma_slow'] = self.decide_sma_slow(sma_26_value=row['trend_sma_slow'],
-                                                      ticker_price=row[f"{ticker_name}_Close"])
-        result_obj['ema_20_vs_50'] = self.decide_ema_20_vs_50(ticker_price=row[f"{ticker_name}_Close"],
-                                                              ema_20_value=row['trend_ema_20'],
-                                                              ema_50_value=row['trend_ema_50'])
-        result_obj['adx'] = self.decide_adx(adx_value=row['trend_adx'], adx_pos_value=row['trend_adx_pos'],
-                                            adx_neg_value=row['trend_adx_neg'])
-        result_obj['vi'] = self.decide_vi(vortex_diff_value=row['trend_vortex_ind_diff'])
-        result_obj['trix'] = self.decide_trix(trix_value=row['trend_trix'])
+        ticker_price: float = row[f"{ticker_name}_Close"]
+        row_np = row.to_numpy()
+
+        result_obj['mfi'] = self.decide_mfi(row_np[row_np_index['volume_mfi']])
+        result_obj['adi'] = self.decide_adi(adi_start=row_np[row_np_index['volume_adi_7d_ago']],
+                                            adi_end=row_np[row_np_index['volume_adi']],
+                                            ticker_start=row_np[row_np_index[f"{ticker_name}_Close_7d_ago"]],
+                                            ticker_end=ticker_price)
+        result_obj['cmf'] = self.decide_cmf(row_np[row_np_index['volume_cmf']])
+        result_obj['em'] = self.decide_cmf(row_np[row_np_index['volume_em']])
+        result_obj['vpt'] = self.decide_vpt(vpt_value=row_np[row_np_index['volume_vpt']],
+                                            vpt_sma_value=row_np[row_np_index['volume_vpt_sma']])
+        result_obj['macd'] = self.decide_macd(macd_value=row_np[row_np_index['trend_macd']],
+                                              macd_signal_value=row_np[row_np_index['trend_macd_signal']])
+        result_obj['nvi'] = self.decide_nvi(nvi_value=row_np[row_np_index['volume_nvi']],
+                                            nvi_ema_255_value=row_np[row_np_index['trend_nvi_ema_255']])
+        result_obj['vwap'] = self.decide_vwap(vwap_value=row_np[row_np_index['volume_vwap']], ticker_price=ticker_price)
+        result_obj['death_cross'] = self.decide_death_cross(sma_50_value=row_np[row_np_index['trend_sma_50']],
+                                                            sma_200_value=row_np[row_np_index['trend_sma_200']])
+        result_obj['golden_cross'] = self.decide_golden_cross(sma_50_value=row_np[row_np_index['trend_sma_50']],
+                                                              sma_200_value=row_np[row_np_index['trend_sma_200']])
+        result_obj['sma_fast'] = self.decide_sma_fast(sma_12_value=row_np[row_np_index['trend_sma_fast']],
+                                                      ticker_price=ticker_price)
+        result_obj['sma_slow'] = self.decide_sma_slow(sma_26_value=row_np[row_np_index['trend_sma_slow']],
+                                                      ticker_price=ticker_price)
+        result_obj['ema_20_vs_50'] = self.decide_ema_20_vs_50(ticker_price=ticker_price,
+                                                              ema_20_value=row_np[row_np_index['trend_ema_20']],
+                                                              ema_50_value=row_np[row_np_index['trend_ema_50']])
+        result_obj['adx'] = self.decide_adx(adx_value=row_np[row_np_index['trend_adx']],
+                                            adx_pos_value=row_np[row_np_index['trend_adx_pos']],
+                                            adx_neg_value=row_np[row_np_index['trend_adx_neg']])
+        result_obj['vi'] = self.decide_vi(vortex_diff_value=row_np[row_np_index['trend_vortex_ind_diff']])
+        result_obj['trix'] = self.decide_trix(trix_value=row_np[row_np_index['trend_trix']])
         return result_obj
 
 
