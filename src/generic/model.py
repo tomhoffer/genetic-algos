@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from typing import List, Tuple, Callable
 import numpy as np
 import wandb
+from tqdm import tqdm
 
 from src.generic.helpers import eval_bool
 
@@ -93,7 +94,7 @@ class Population(Hyperparams, PopulationBase):
         success = False
         self.generate_initial_population()
 
-        for i in range(int(os.environ.get("MAX_ITERS"))):
+        for i in tqdm(range(int(os.environ.get("MAX_ITERS"))), desc="Running epoch"):
             self.refresh_fitness()
             self.perform_selection()
             self.perform_crossover()
