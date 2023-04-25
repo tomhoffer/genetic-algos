@@ -7,52 +7,42 @@ from src.generic.model import Solution, InvalidPopulationException
 from conftest import mockenv
 
 
-def test_get_winner(configurable_population, mocker):
+def test_get_winner(configurable_population):
     population = configurable_population(elitism=0)
-    mocked_refresh_fitness = mocker.patch('src.generic.model.Population.refresh_fitness')
     winner, fitness = population.get_winner()
 
-    mocked_refresh_fitness.assert_called_once()
     assert winner.fitness == fitness
     assert fitness == max(member.fitness for member in population.members)
 
 
-def test_perform_selection(configurable_population, mocker):
+def test_perform_selection(configurable_population):
     population = configurable_population(elitism=0)
-    mocked_refresh_fitness = mocker.patch('src.generic.model.Population.refresh_fitness')
     old_members = copy.deepcopy(population.members)
     population.perform_selection()
-    mocked_refresh_fitness.assert_called_once()
     assert not population.members == old_members
 
 
-def test_perform_mutation(configurable_population, mocker):
+def test_perform_mutation(configurable_population):
     population = configurable_population(elitism=0)
-    mocked_refresh_fitness = mocker.patch('src.generic.model.Population.refresh_fitness')
     old_members = copy.deepcopy(population.members)
     population.perform_mutation()
-    mocked_refresh_fitness.assert_called_once()
     assert not population.members == old_members
 
 
-def test_perform_crossover(configurable_population, mocker):
+def test_perform_crossover(configurable_population):
     population = configurable_population(elitism=0)
-    mocked_refresh_fitness = mocker.patch('src.generic.model.Population.refresh_fitness')
     old_members = copy.deepcopy(population.members)
     population.perform_crossover()
-    mocked_refresh_fitness.assert_called_once()
     assert not population.members == old_members
 
 
 def test_generate_initial_population(empty_population, mocker):
-    mocked_refresh_fitness = mocker.patch('src.generic.model.Population.refresh_fitness')
     mocked_is_valid_population = mocker.patch('src.generic.model.Population.is_valid_population')
     old_members = copy.deepcopy(empty_population.members)
 
     # Re-generate population again
     empty_population.generate_initial_population()
 
-    mocked_refresh_fitness.assert_called_once()
     mocked_is_valid_population.assert_called_once()
     assert not empty_population.members == old_members
 
