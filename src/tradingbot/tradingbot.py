@@ -5,13 +5,12 @@ from functools import cache
 from typing import List, Hashable
 
 import numpy as np
-import pandas
 import pandas as pd
 from dotenv import load_dotenv
-from numpy.random import default_rng
 
 from src.generic.crossover import Crossover
 from src.generic.executor import TrainingExecutor
+from src.generic.hyperparams import HyperparamEvaluator
 from src.generic.model import Solution, Hyperparams
 from src.generic.mutation import Mutation
 from src.generic.selection import Selection
@@ -22,6 +21,7 @@ from src.tradingbot.decisions import TradingStrategies, Decision
 pd.options.mode.chained_assignment = None  # Disable SettingWithCopyWarning
 logging.basicConfig(level=logging.INFO)
 load_dotenv()
+backtesting = False
 
 
 @dataclass

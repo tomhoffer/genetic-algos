@@ -16,6 +16,8 @@ class AppConfigError(Exception):
 class Config:
     NUM_TRANSACTIONS: int
     MAX_YEARLY_TRADES: int
+    BACKTEST_END_TIMESTAMP: int
+    BACKTEST_START_TIMESTAMP: int
     BUDGET: float
     START_TIMESTAMP: int
     END_TIMESTAMP: int
