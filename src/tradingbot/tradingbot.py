@@ -43,6 +43,10 @@ class TradingbotSolution(Solution):
         return self.chromosome
 
     def buy(self, datetime: str, amount: float):
+
+        if self.account_balance == 0:
+            return
+
         amount_to_buy = amount
         if 0 < self.account_balance < amount:
             amount_to_buy = self.account_balance
