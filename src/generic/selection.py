@@ -14,7 +14,7 @@ from src.generic.model import Population, Solution
 class Selection:
 
     @staticmethod
-    @validate_population_length
+    #@validate_population_length
     def tournament(population: Population, tournament_size=3) -> List[Solution]:
 
         if all(el.fitness == np.NINF for el in population.members):
@@ -43,7 +43,7 @@ class Selection:
         return offspring_population
 
     @staticmethod
-    @validate_population_length
+    #@validate_population_length
     def roulette(population: Population) -> List[Solution]:
         logging.debug("Performing roulette wheel selection from population: %s", population.members)
         sum_fitness = sum(el.fitness for el in population.members)
@@ -72,7 +72,7 @@ class Selection:
         return offspring_population
 
     @staticmethod
-    @validate_population_length
+    #@validate_population_length
     def rank(population: Population) -> List[Solution]:
         logging.debug("Performing rank-based selection from population: %s", population.members)
 

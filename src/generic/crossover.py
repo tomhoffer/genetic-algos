@@ -10,8 +10,8 @@ from src.generic.model import Solution
 
 class Crossover:
     @staticmethod
-    @validate_parents_chromosome_type(type=np.ndarray)
-    @validate_chromosome_length
+    #@validate_parents_chromosome_type(type=np.ndarray)
+    #@validate_chromosome_length
     def single_point(parent1: Solution, parent2: Solution) -> Optional[Tuple[Solution, Solution]]:
         crossover_pos = random.randint(0, len(parent1.chromosome) - 1)
 
@@ -32,8 +32,8 @@ class Crossover:
         return b, a
 
     @staticmethod
-    @validate_parents_chromosome_type(type=np.ndarray)
-    @validate_chromosome_length
+    #@validate_parents_chromosome_type(type=np.ndarray)
+    #@validate_chromosome_length
     def uniform(parent1: Solution, parent2: Solution) -> Optional[Tuple[Solution, Solution]]:
         logging.debug("Performing uniform crossover between parents: %s, %s...", parent1.chromosome, parent2.chromosome)
 
