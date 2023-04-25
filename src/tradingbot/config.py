@@ -18,6 +18,8 @@ class Config:
     TRADE_SIZE: float
     START_TIMESTAMP: int
     END_TIMESTAMP: int
+    BACKTEST_END_TIMESTAMP: int
+    BACKTEST_START_TIMESTAMP: int
     MAX_ITERS: int
     N_PROCESSES: int
     POPULATION_SIZE: int
