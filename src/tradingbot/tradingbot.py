@@ -73,12 +73,7 @@ class TradingbotSolution(Solution):
 
 @cache
 def load_ticker_data(path: str = 'data.csv') -> pd.DataFrame:
-    df = pd.read_csv(path, parse_dates=['Date'], index_col=['Date'])
-
-    # Remove columns with too few values
-    # minimum_value_count = df.count().quantile(0.45)
-    # return df.dropna(thresh=minimum_value_count, axis='columns')
-    return df
+    return pd.read_csv(path, parse_dates=['Date'], index_col=['Date'])
 
 
 def get_trading_strategy_method_names() -> List[str]:
@@ -154,8 +149,12 @@ def chromosome_validator_fn(solution: TradingbotSolution) -> bool:
     return np.all((solution.chromosome >= 0) & (solution.chromosome <= 1))
 
 
-def mutate(chromosome: np.ndarray) -> np.ndarray:
+def mutate_gaussian(chromosome: np.ndarray) -> np.ndarray:
     return Mutation.mutate_real_gaussian(chromosome, use_abs=True, max=1.0, min=0)
+
+
+def mutate_uniform(chromosome: np.ndarray) -> np.ndarray:
+    return Mutation.mutate_real_uniform(chromosome, use_abs=True, max=1.0, min=0)
 
 
 if __name__ == "__main__":
