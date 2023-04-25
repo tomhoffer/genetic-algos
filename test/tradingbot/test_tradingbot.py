@@ -68,6 +68,33 @@ def test_buy_sell(mocker):
     assert s.account_balance == 10 + 50
 
 
+@mockenv(TRADED_TICKER_NAME="AAPL", BUDGET="20", TRADE_SIZE="10")
+def test_buy_partial(mocker):
+    # Buy is possible for a partial amount if account balance > 0
+    df = load_ticker_data('test/tradingbot/test_data.csv')
+    mocker.patch('src.tradingbot.tradingbot.load_ticker_data', return_value=df)
+    s = TradingbotSolution(chromosome=np.asarray([]), account_balance=20)
+    timestamp_bought = '1970-01-01'
+
+    s.buy(datetime=timestamp_bought, amount=30)
+    assert s.account_balance == 0
+    assert len(s.bought_positions) == 1
+    assert s.bought_positions[0].amount == 20
+
+
+@mockenv(TRADED_TICKER_NAME="AAPL", BUDGET="20", TRADE_SIZE="10")
+def test_buy_failed(mocker):
+    df = load_ticker_data('test/tradingbot/test_data.csv')
+    mocker.patch('src.tradingbot.tradingbot.load_ticker_data', return_value=df)
+
+    # Buy is not possible when account balance is 0
+    s = TradingbotSolution(chromosome=np.asarray([]), account_balance=0)
+    timestamp_bought = '1970-01-01'
+    s.buy(datetime=timestamp_bought, amount=1)
+    assert s.account_balance == 0
+    assert len(s.bought_positions) == 0
+
+
 @mockenv(TRADED_TICKER_NAME="AAPL", START_TIMESTAMP="34361", END_TIMESTAMP="811961", BUDGET="100", TRADE_SIZE="10")
 def test_tradingbotsolution_fitness(mocker):
     # Fitness works correctly for a dummy chromosome with only 1 strategy (100% weight)
