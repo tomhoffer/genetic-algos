@@ -41,12 +41,13 @@ class Mutation:
 
     @staticmethod
     @validate_chromosome_type(type=np.ndarray)
-    def mutate_real_uniform(sequence: np.ndarray, min: float = None, max: float = None) -> np.ndarray:
+    def mutate_real_uniform(sequence: np.ndarray, min: float, max: float, use_abs=True) -> np.ndarray:
         """
         Suitable for real numbers
         :param sequence: sequence to mutate
         :param min: mutated value must be >= min
         :param max: mutated value must be <= max
+        :param use_abs: use abs() to prevent any negative values after mutation
         :return: mutated sequence
         """
 
@@ -62,6 +63,8 @@ class Mutation:
                 if random.random() < probability:
                     logging.debug("Mutation probability hit! Mutating gene: %s...", sequence)
                     x[...] = rng.uniform(low=min, high=max, size=1)
+        if use_abs:
+            result = np.abs(result)
         return result
 
     @staticmethod

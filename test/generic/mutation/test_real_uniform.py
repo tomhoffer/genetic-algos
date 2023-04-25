@@ -45,3 +45,12 @@ def test_invalid_chromosome_type():
     for val in invalid_values:
         with pytest.raises(TypeError, match=r"Chromosome does not match required type: .*\. Chromosome: .*") as err:
             Mutation.mutate_real_uniform(val)
+
+
+@mockenv(P_MUTATION="1.0")
+def test_use_absolute():
+    before = np.asarray([-1.27, 3.8, -0.4, 0])
+    after = Mutation.mutate_real_uniform(before, use_abs=True, min=0, max=5)
+    for x in after:
+        assert x >= 0
+    assert before.shape == after.shape
