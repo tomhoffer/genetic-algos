@@ -1,4 +1,5 @@
 import os
+from functools import cache
 from typing import get_type_hints, Any
 from dotenv import load_dotenv
 
