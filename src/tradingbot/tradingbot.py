@@ -142,7 +142,8 @@ def fitness(chromosome: np.ndarray) -> float:
 
 
 def stopping_criteria_fn(solution: TradingbotSolution) -> bool:
-    return True if solution.fitness > 500 else False
+    return False
+    # return True if solution.fitness > 2000 else False
 
 
 def chromosome_validator_fn(solution: TradingbotSolution) -> bool:
@@ -158,11 +159,12 @@ def mutate_uniform(chromosome: np.ndarray) -> np.ndarray:
 
 
 if __name__ == "__main__":
+    """
     params = Hyperparams(crossover_fn=Crossover.two_point,
                          initial_population_generator_fn=initial_population_generator,
                          mutation_fn=mutate,
-                         selection_fn=Selection.tournament,
-                         fitness_fn=fitness, population_size=Config.get_value("POPULATION_SIZE"), elitism=5,
+                         selection_fn=Selection.rank,
+                         fitness_fn=fitness, population_size=Config.get_value("POPULATION_SIZE"), elitism=1,
                          stopping_criteria_fn=stopping_criteria_fn, chromosome_validator_fn=chromosome_validator_fn)
 
     logging.info("Training on period: %s - %s", timestamp_to_str(Config.get_value("START_TIMESTAMP")),
@@ -178,10 +180,10 @@ if __name__ == "__main__":
     # selection_methods = [Selection.tournament, Selection.roulette, Selection.rank]
     selection_methods = [Selection.rank]
     # crossover_methods = [Crossover.two_point, Crossover.single_point, Crossover.uniform]
-    crossover_methods = [Crossover.two_point]
-    mutation_methods = [mutate]
-    population_sizes = [10, 20]
-    elitism_values = [1, 3]
+    crossover_methods = [Crossover.single_point]
+    mutation_methods = [mutate_uniform]
+    population_sizes = [10, 500, 1000]
+    elitism_values = [3]
 
     evaluator = HyperparamEvaluator(selection_methods=selection_methods, mutation_methods=mutation_methods,
                                     crossover_methods=crossover_methods, population_sizes=population_sizes,
@@ -190,4 +192,3 @@ if __name__ == "__main__":
                                     chromosome_validator_fn=chromosome_validator_fn)
 
     evaluator.grid_search_parallel()
-    """
