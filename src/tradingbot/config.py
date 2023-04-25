@@ -32,6 +32,7 @@ class Config:
     """
 
     @staticmethod
+    @cache
     def get_value(value: str) -> Any:
         # Cast env var value to expected type and raise AppConfigError on failure
         var_type = get_type_hints(Config)[value]
