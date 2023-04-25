@@ -7,8 +7,10 @@ from src.tradingbot.config import Config
 
 
 class Decision(IntEnum):
+    STRONG_BUY = 2
     BUY = 1
     SELL = -1
+    STRONG_SELL = -1
     INCONCLUSIVE = 0
 
 
@@ -68,8 +70,12 @@ class TradingStrategies:
         Ease of movement indicator: https://www.investopedia.com/terms/e/easeofmovement.asp
         :return: Signal to buy or sell based on EM
         """
+        if em_value > 0.2:
+            return Decision.STRONG_BUY
         if em_value > 0.1:
             return Decision.BUY
+        if em_value < -0.2:
+            return Decision.STRONG_SELL
         if em_value < -0.1:
             return Decision.SELL
         return Decision.INCONCLUSIVE
@@ -197,11 +203,17 @@ class TradingStrategies:
         if is_trend_weak:
             return Decision.INCONCLUSIVE
 
-        if (is_trend_strong or is_trend_inconclusive) and adx_pos_value > adx_neg_value:
+        if is_trend_inconclusive and adx_pos_value > adx_neg_value:
             return Decision.BUY
 
-        if (is_trend_strong or is_trend_inconclusive) and adx_neg_value > adx_pos_value:
+        if is_trend_strong and adx_pos_value > adx_neg_value:
+            return Decision.STRONG_BUY
+
+        if is_trend_inconclusive and adx_neg_value > adx_pos_value:
             return Decision.SELL
+
+        if is_trend_strong and adx_neg_value > adx_pos_value:
+            return Decision.STRONG_SELL
 
     @staticmethod
     def decide_vi(vortex_diff_value: float) -> Decision:
@@ -225,10 +237,26 @@ class TradingStrategies:
             return Decision.INCONCLUSIVE
         return Decision.BUY if trix_value > 0 else Decision.SELL
 
+    @staticmethod
+    def decide_sentiment(sentiment_value: float) -> Decision:
+        if np.isnan(sentiment_value):
+            return Decision.INCONCLUSIVE
+
+        if sentiment_value == 0.5:
+            return Decision.INCONCLUSIVE
+        if sentiment_value > 0.7:
+            return Decision.STRONG_BUY
+        if sentiment_value > 0.5:
+            return Decision.BUY
+        if sentiment_value < 0.3:
+            return Decision.STRONG_SELL
+        if sentiment_value < 0.5:
+            return Decision.SELL
+
     def perform_decisions_for_row(self, row: np.array, row_np_index: Dict) -> Dict:
         result_obj = {}
         ticker_name = Config.get_value("TRADED_TICKER_NAME")
-        ticker_price: float = row[row_np_index[f"{ticker_name}_Close"]]
+        ticker_price: float = row[row_np_index[f"{ticker_name}_Adj Close"]]
 
         result_obj['mfi'] = self.decide_mfi(row[row_np_index['volume_mfi']])
         result_obj['adi'] = self.decide_adi(adi_start=row[row_np_index['volume_adi_7d_ago']],
@@ -260,12 +288,5 @@ class TradingStrategies:
                                             adx_neg_value=row[row_np_index['trend_adx_neg']])
         result_obj['vi'] = self.decide_vi(vortex_diff_value=row[row_np_index['trend_vortex_ind_diff']])
         result_obj['trix'] = self.decide_trix(trix_value=row[row_np_index['trend_trix']])
+        result_obj['sentiment'] = self.decide_sentiment(sentiment_value=row[row_np_index['sentiment']])
         return result_obj
-
-
-class Sentiment:
-    @staticmethod
-    def decide_sentiment(sentiment_value: float) -> Decision:
-        if sentiment_value == 0.5:
-            return Decision.INCONCLUSIVE
-        return Decision.BUY if sentiment_value > 0.5 else Decision.SELL
