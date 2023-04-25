@@ -54,10 +54,11 @@ class TradingbotSolution(Solution):
             return
         # Sell the first open buy position
         position_to_sell: Position = self.bought_positions[0]
-        df: pandas.DataFrame = load_ticker_data()
-        ticker_value_at_sell: float = df.at[datetime, f"{Config.get_value('TRADED_TICKER_NAME')}_Close"]
-        ticker_value_at_buy: float = df.at[position_to_sell.datetime, f"{Config.get_value('TRADED_TICKER_NAME')}_Close"]
-        profit: float = (ticker_value_at_sell / ticker_value_at_buy * position_to_sell.amount) - position_to_sell.amount
+        df: pd.DataFrame = load_ticker_data()
+        ticker_value_at_sell: float = df.at[datetime, f"{Config.get_value('TRADED_TICKER_NAME')}_Adj Close"]
+        ticker_value_at_buy: float = df.at[
+            position_to_sell.datetime, f"{Config.get_value('TRADED_TICKER_NAME')}_Adj Close"]
+        profit: float = (ticker_value_at_sell / ticker_value_at_buy * position_to_sell.amount)
 
         self.bought_positions.pop(0)
         self.account_balance += profit
@@ -101,15 +102,21 @@ def initial_population_generator() -> List[TradingbotSolution]:
     rng = np.random.default_rng()
 
     for i in range(Config.get_value('POPULATION_SIZE')):
-        chromosome = rng.random(num_of_strategies)
+        random_weights = rng.random(num_of_strategies)
+        chromosome = random_weights / np.sum(random_weights)
         result.append(TradingbotSolution(chromosome))
         logging.debug("Generated random individual with chromosome %s", chromosome)
     return result
 
 
 def fitness(chromosome: np.ndarray) -> float:
-    end_date: str = timestamp_to_str(Config.get_value("END_TIMESTAMP"))
-    start_date: str = timestamp_to_str(Config.get_value("START_TIMESTAMP"))
+    if backtesting:
+        end_date: str = timestamp_to_str(Config.get_value("BACKTEST_END_TIMESTAMP"))
+        start_date: str = timestamp_to_str(Config.get_value("BACKTEST_START_TIMESTAMP"))
+    else:
+        end_date: str = timestamp_to_str(Config.get_value("END_TIMESTAMP"))
+        start_date: str = timestamp_to_str(Config.get_value("START_TIMESTAMP"))
+
     evaluation_df: pd.DataFrame = load_ticker_data()[start_date:end_date]
     evaluation_df['datetime'] = evaluation_df.index
     row_np_index = dict(zip(evaluation_df.columns, list(range(0, len(evaluation_df.columns)))))
@@ -162,4 +169,26 @@ if __name__ == "__main__":
     logging.info("Training on period: %s - %s", timestamp_to_str(Config.get_value("START_TIMESTAMP")),
                  timestamp_to_str(Config.get_value("END_TIMESTAMP")))
     winner, success, id = TrainingExecutor.run((params, 1))
-    logging.info("Found winner with weights %s and profit %s", winner.chromosome, winner.fitness)
+    logging.info("Found winner with weights %s and resulting account balance %s",
+                 [el for el in zip(get_trading_strategy_method_names(), winner.chromosome)], winner.fitness)
+
+    backtesting = True
+    logging.info("Starting backtest...")
+    logging.info("Resulting account balance over backtesting period: %s", fitness(winner.chromosome))
+    """
+    # selection_methods = [Selection.tournament, Selection.roulette, Selection.rank]
+    selection_methods = [Selection.rank]
+    # crossover_methods = [Crossover.two_point, Crossover.single_point, Crossover.uniform]
+    crossover_methods = [Crossover.two_point]
+    mutation_methods = [mutate]
+    population_sizes = [10, 20]
+    elitism_values = [1, 3]
+
+    evaluator = HyperparamEvaluator(selection_methods=selection_methods, mutation_methods=mutation_methods,
+                                    crossover_methods=crossover_methods, population_sizes=population_sizes,
+                                    fitness_fn=fitness, initial_population_generation_fn=initial_population_generator,
+                                    elitism_values=elitism_values, stopping_criteria_fn=stopping_criteria_fn,
+                                    chromosome_validator_fn=chromosome_validator_fn)
+
+    evaluator.grid_search_parallel()
+    """
