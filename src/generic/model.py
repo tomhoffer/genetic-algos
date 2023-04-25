@@ -86,6 +86,7 @@ class Population(Hyperparams, PopulationBase):
                 "selection-method": self.selection_fn,
                 "mutation-method": self.mutation_fn,
                 "population-size": self.population_size,
+                "elitism": self.elitism,
             }, reinit=True)
 
         winner = None
