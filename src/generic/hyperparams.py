@@ -15,6 +15,8 @@ class HyperparamEvaluator:
     initial_population_generation_fn: Callable
     fitness_fn: Callable
     elitism_values: List[int]
+    stopping_criteria_fn: Callable
+    chromosome_validator_fn: Callable
 
     def grid_search(self):
         """
@@ -29,7 +31,8 @@ class HyperparamEvaluator:
                                                  crossover_fn=crossover_method,
                                                  initial_population_generator_fn=self.initial_population_generation_fn,
                                                  fitness_fn=self.fitness_fn, population_size=population_size,
-                                                 elitism=elitism_value)
+                                                 elitism=elitism_value, stopping_criteria_fn=self.stopping_criteria_fn,
+                                                 chromosome_validator_fn=self.chromosome_validator_fn)
                             TrainingExecutor.run((params, 1))
 
     def grid_search_parallel(self):
@@ -46,7 +49,8 @@ class HyperparamEvaluator:
                                                  crossover_fn=crossover_method,
                                                  initial_population_generator_fn=self.initial_population_generation_fn,
                                                  fitness_fn=self.fitness_fn, population_size=population_size,
-                                                 elitism=elitism_value)
+                                                 elitism=elitism_value, stopping_criteria_fn=self.stopping_criteria_fn,
+                                                 chromosome_validator_fn=self.chromosome_validator_fn)
                             combinations.append(params)
 
         with Pool(processes=int(os.environ.get("N_PROCESSES"))) as pool:
