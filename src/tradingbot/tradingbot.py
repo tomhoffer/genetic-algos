@@ -43,10 +43,12 @@ class TradingbotSolution(Solution):
         return self.chromosome
 
     def buy(self, datetime: str, amount: float):
-        if self.account_balance < amount:
-            return
-        self.bought_positions.append(Position(datetime=datetime, amount=amount))
-        self.account_balance -= amount
+        amount_to_buy = amount
+        if 0 < self.account_balance < amount:
+            amount_to_buy = self.account_balance
+
+        self.bought_positions.append(Position(datetime=datetime, amount=amount_to_buy))
+        self.account_balance -= amount_to_buy
         logging.debug("Buying for %sUSD on date %s", amount, datetime)
 
     def sell(self, datetime: str):
@@ -160,9 +162,9 @@ def mutate_uniform(chromosome: np.ndarray) -> np.ndarray:
 if __name__ == "__main__":
     params = Hyperparams(crossover_fn=Crossover.two_point,
                          initial_population_generator_fn=initial_population_generator,
-                         mutation_fn=mutate,
-                         selection_fn=Selection.tournament,
-                         fitness_fn=fitness, population_size=Config.get_value("POPULATION_SIZE"), elitism=5,
+                         mutation_fn=mutate_uniform,
+                         selection_fn=Selection.rank,
+                         fitness_fn=fitness, population_size=Config.get_value("POPULATION_SIZE"), elitism=1,
                          stopping_criteria_fn=stopping_criteria_fn, chromosome_validator_fn=chromosome_validator_fn)
 
     logging.info("Training on period: %s - %s", timestamp_to_str(Config.get_value("START_TIMESTAMP")),
