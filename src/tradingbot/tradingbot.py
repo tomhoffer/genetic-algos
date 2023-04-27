@@ -103,8 +103,7 @@ def initial_population_generator() -> List[TradingbotSolution]:
     rng = np.random.default_rng()
 
     for i in range(Config.get_value('POPULATION_SIZE')):
-        random_weights = rng.random(num_of_strategies)
-        chromosome = random_weights / np.sum(random_weights)
+        chromosome = rng.random(num_of_strategies)
         result.append(TradingbotSolution(chromosome))
         logging.debug("Generated random individual with chromosome %s", chromosome)
     return result
@@ -129,15 +128,24 @@ def fitness(chromosome: np.ndarray) -> float:
         # Make decision based on all trading strategies and their weights
         decisions: np.array = np.array(list(ts.perform_decisions_for_row(row, row_np_index).values()))
         decisions_sum = np.sum(np.multiply(chromosome, decisions))
-        result = Decision.BUY if decisions_sum > 0 else Decision.SELL if decisions_sum < 0 else Decision.INCONCLUSIVE
+
+        if 0 < decisions_sum < 0.5:
+            result = Decision.BUY
+        elif decisions_sum >= 0.5:
+            result = Decision.STRONG_BUY
+        elif decisions_sum <= -0.5:
+            result = Decision.STRONG_SELL
+        elif -0.5 < decisions_sum < 0:
+            result = Decision.SELL
+        else:
+            result = Decision.INCONCLUSIVE
+
         logging.debug("Result based on individual decisions: %s", result)
 
-        if result == Decision.INCONCLUSIVE:
-            return
-        elif result == Decision.BUY:
+        if result == Decision.STRONG_BUY:
             solution.buy(datetime=timestamp_to_str(row[row_np_index['datetime']]),
                          amount=Config.get_value("TRADE_SIZE"))
-        elif result == Decision.SELL:
+        elif result == Decision.STRONG_SELL:
             solution.sell(datetime=timestamp_to_str(row[row_np_index['datetime']]))
 
     np.apply_along_axis(decide_row, axis=1, arr=evaluation_data)
@@ -164,11 +172,11 @@ def mutate_uniform(chromosome: np.ndarray) -> np.ndarray:
 
 
 if __name__ == "__main__":
-    params = Hyperparams(crossover_fn=Crossover.two_point,
+    params = Hyperparams(crossover_fn=Crossover.single_point,
                          initial_population_generator_fn=initial_population_generator,
                          mutation_fn=mutate_uniform,
                          selection_fn=Selection.rank,
-                         fitness_fn=fitness, population_size=Config.get_value("POPULATION_SIZE"), elitism=1,
+                         fitness_fn=fitness, population_size=Config.get_value("POPULATION_SIZE"), elitism=3,
                          stopping_criteria_fn=stopping_criteria_fn, chromosome_validator_fn=chromosome_validator_fn)
 
     logging.info("Training on period: %s - %s", timestamp_to_str(Config.get_value("START_TIMESTAMP")),
