@@ -132,3 +132,4 @@ wandb
 .idea
 src/investobot/data.csv
 *.DS_Store
+
