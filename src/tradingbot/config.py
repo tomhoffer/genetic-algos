@@ -1,5 +1,6 @@
 import os
-from functools import cache
+import sys
+from functools import lru_cache
 from typing import get_type_hints, Any
 from dotenv import load_dotenv
 
@@ -27,6 +28,8 @@ class Config:
     ELITISM = False
     P_MUTATION: float
     TRADED_TICKER_NAME: str
+    STOP_LOSS_PROPORTION: float
+    TAKE_PROFIT_PROPORTION: float
 
     """
     Map environment variables to class fields according to these rules:
