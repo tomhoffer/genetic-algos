@@ -2,7 +2,7 @@ import logging
 import os
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import List, Tuple, Callable
+from typing import List, Tuple, Callable, Dict
 import numpy as np
 import wandb
 from tqdm import tqdm
@@ -25,6 +25,12 @@ class Hyperparams:
     chromosome_validator_fn: Callable
     population_size: int
     elitism: int
+
+    def get_wandb_config(self):
+        config = {}
+        for key, val in zip(self.__dict__.keys(), self.__dict__.values()):
+            config[key] = val
+        return config
 
 
 @dataclass
@@ -68,27 +74,23 @@ class PopulationBase(ABC):
 
 
 @dataclass
-class Population(Hyperparams, PopulationBase):
+class Population(PopulationBase):
     members: List[Solution]
+    hyperparams: Hyperparams
 
     def train(self, id: int) -> Tuple[Solution, bool, int]:
 
         """
         :param self:
         :param id: Process identifier
+        :param wandb_config: Config object for wandb service
         :return: Solution, boolean indicating whether result was found or not, process identifier
         """
 
         logging.debug("Process started with id %d...", id)
 
         if eval_bool(os.environ.get("ENABLE_WANDB")):
-            run = wandb.init(project="genetic-algos-one-max", config={
-                "crossover-method": self.crossover_fn,
-                "selection-method": self.selection_fn,
-                "mutation-method": self.mutation_fn,
-                "population-size": self.population_size,
-                "elitism": self.elitism,
-            }, reinit=True)
+            run = wandb.init(project="genetic-algos", config=self.hyperparams.get_wandb_config(), reinit=True)
 
         winner = None
         success = False
@@ -107,7 +109,7 @@ class Population(Hyperparams, PopulationBase):
                     "fitness": winner_fitness
                 }, step=i)
 
-            if self.stopping_criteria_fn(winner):
+            if self.hyperparams.stopping_criteria_fn(winner):
                 success = True
                 logging.info("Found result after %d iterations in process %d: %s!", i, id, winner)
                 break
@@ -117,11 +119,11 @@ class Population(Hyperparams, PopulationBase):
         return winner, success, id
 
     def generate_initial_population(self):
-        self.members = self.initial_population_generator_fn()
+        self.members = self.hyperparams.initial_population_generator_fn()
         max_attempts = 50
         attempt = 1
         while attempt <= max_attempts and not self.is_valid_population():
-            self.members = self.initial_population_generator_fn()
+            self.members = self.hyperparams.initial_population_generator_fn()
             attempt += 1
 
         if attempt > max_attempts:
@@ -130,14 +132,14 @@ class Population(Hyperparams, PopulationBase):
 
     def refresh_fitness(self):
         for individual in self.members:
-            individual.fitness = self.fitness_fn(individual.chromosome)
+            individual.fitness = self.hyperparams.fitness_fn(individual.chromosome)
 
     def perform_mutation(self):
         for individual in self.members:
-            individual.chromosome = self.mutation_fn(individual.chromosome)
+            individual.chromosome = self.hyperparams.mutation_fn(individual.chromosome)
 
     def perform_selection(self):
-        self.members = self.selection_fn(self)
+        self.members = self.hyperparams.selection_fn(self)
 
     def perform_crossover(self):
         middle_point = len(self.members) // 2
@@ -145,7 +147,7 @@ class Population(Hyperparams, PopulationBase):
         group2 = self.members[middle_point:]
         offsprings: List[Solution] = []
         for a, b in zip(group1, group2):
-            offspring1, offspring2 = self.crossover_fn(a, b)
+            offspring1, offspring2 = self.hyperparams.crossover_fn(a, b)
             offsprings.append(offspring1)
             offsprings.append(offspring2)
         self.members = offsprings
@@ -168,6 +170,6 @@ class Population(Hyperparams, PopulationBase):
             :return: True if all population members are valid
         """
         for member in self.members:
-            if not self.chromosome_validator_fn(member):
+            if not self.hyperparams.chromosome_validator_fn(member):
                 return False
         return True
