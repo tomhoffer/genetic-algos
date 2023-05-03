@@ -43,19 +43,21 @@ class HyperparamEvaluator:
                             chromosome_validator_fn=self.chromosome_validator_fn) for combination in
                 self._get_hyperparam_grid()]
 
-    def grid_search(self):
+    def grid_search(self, return_global_winner=False):
         """
         Sequential grid search
         """
         combinations: List[Hyperparams] = self.get_hyperparam_combinations()
         for combination in combinations:
-            TrainingExecutor.run((combination, 1))
+            TrainingExecutor.run((combination, 1), return_global_winner=return_global_winner)
 
-    def grid_search_parallel(self):
+    def grid_search_parallel(self, return_global_winner=False):
         """
         Parallel grid search
         """
         combinations: List[Hyperparams] = self.get_hyperparam_combinations()
         with Pool(processes=int(os.environ.get("N_PROCESSES"))) as pool:
-            result = pool.map_async(TrainingExecutor.run, zip(combinations, range(len(combinations))))
+            result = pool.map_async(TrainingExecutor.run,
+                                    zip(combinations, range(len(combinations)),
+                                        [return_global_winner for _ in range(len(combinations))]))
             result.wait()
