@@ -13,20 +13,22 @@ from src.generic.model import Population, Solution, Hyperparams
 class TrainingExecutor:
 
     @staticmethod
-    def run(args: Tuple[Hyperparams, int]) -> Tuple[Solution, bool, int]:
+    def run(args: Tuple[Hyperparams, int], return_global_winner=False) -> Tuple[Solution, bool, int]:
         params: Hyperparams = args[0]
         process_id: int = args[1]
         logging.info(f"Running training with parameters: {params}")
-        return Population(members=[], hyperparams=params).train(id=process_id)
+        return Population(members=[], hyperparams=params).train(id=process_id,
+                                                                return_global_winner=return_global_winner)
 
     @staticmethod
-    def run_parallel(params: Hyperparams) -> Tuple[Solution, bool, int]:
+    def run_parallel(params: Hyperparams, return_global_winner=False) -> Tuple[Solution, bool, int]:
         logging.info(f"Running parallel training with parameters: {params}")
         with Pool(processes=int(os.environ.get("N_PROCESSES"))) as pool:
 
+            n_processes = int(os.environ.get("N_PROCESSES"))
             it = pool.imap_unordered(TrainingExecutor.run,
-                                     zip([params for _ in range(int(os.environ.get("N_PROCESSES")))],
-                                         range(int(os.environ.get("N_PROCESSES")))))
+                                     zip([params for _ in range(n_processes)],
+                                         range(n_processes), [return_global_winner for _ in range(n_processes)]))
 
             winner = Solution(chromosome=np.asarray([]), fitness=0)
             winner_process_id: int = 0
