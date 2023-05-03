@@ -35,7 +35,7 @@ class Config:
     """
 
     @staticmethod
-    @cache
+    @lru_cache(maxsize=0 if "pytest" in sys.modules else 256)
     def get_value(value: str) -> Any:
         # Cast env var value to expected type and raise AppConfigError on failure
         var_type = get_type_hints(Config)[value]
