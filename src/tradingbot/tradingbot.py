@@ -148,25 +148,21 @@ def fitness(chromosome: np.ndarray) -> float:
         # Make decision based on all trading strategies and their weights
         decisions: np.array = np.array(list(ts.perform_decisions_for_row(row, row_np_index).values()))
         decisions_sum = np.sum(np.multiply(chromosome, decisions))
+        decision_threshold: float = abs(Config.get_value('TRADE_ACTION_CONFIDENCE'))
 
-        if 0 < decisions_sum < 0.5:
+        result = Decision.INCONCLUSIVE
+        if decisions_sum > decision_threshold:
             result = Decision.BUY
-        elif decisions_sum >= 0.5:
-            result = Decision.STRONG_BUY
-        elif decisions_sum <= -0.5:
-            result = Decision.STRONG_SELL
-        elif -0.5 < decisions_sum < 0:
+        elif decisions_sum < (-1) * decision_threshold:
             result = Decision.SELL
-        else:
-            result = Decision.INCONCLUSIVE
 
         logging.debug("Result based on individual decisions: %s", result)
 
-        if result == Decision.STRONG_BUY:
+        if result == Decision.BUY:
             solution.buy(datetime=timestamp_to_str(row[row_np_index['datetime']]),
                          amount=Config.get_value("TRADE_SIZE"),
                          price=ticker_price)
-        elif result == Decision.STRONG_SELL:
+        elif result == Decision.SELL:
             solution.sell(datetime=timestamp_to_str(row[row_np_index['datetime']]), index=0)
 
     np.apply_along_axis(decide_row, axis=1, arr=evaluation_data)
@@ -177,7 +173,7 @@ def fitness(chromosome: np.ndarray) -> float:
 
 
 def stopping_criteria_fn(solution: TradingbotSolution) -> bool:
-    return True if solution.fitness > 500 else False
+    return True if solution.fitness > 100000 else False
 
 
 def chromosome_validator_fn(solution: TradingbotSolution) -> bool:
@@ -201,7 +197,8 @@ if __name__ == "__main__":
                                    stopping_criteria_fn=stopping_criteria_fn,
                                    chromosome_validator_fn=chromosome_validator_fn,
                                    stop_loss_ratio=Config.get_value("STOP_LOSS_PROPORTION"),
-                                   take_profit_ratio=Config.get_value("TAKE_PROFIT_PROPORTION"))
+                                   take_profit_ratio=Config.get_value("TAKE_PROFIT_PROPORTION"),
+                                   trade_action_confidence=Config.get_value("TRADE_ACTION_CONFIDENCE"))
 
     logging.info("Training on period: %s - %s", timestamp_to_str(Config.get_value("START_TIMESTAMP")),
                  timestamp_to_str(Config.get_value("END_TIMESTAMP")))
@@ -223,6 +220,7 @@ if __name__ == "__main__":
     elitism_values = [1]
     stop_loss_ratios = [0.5, 0.6, 0.7, 0.8, 0.9]
     take_profit_ratios = [1.1, 1.2, 1.3, 1.5, 1.7, 2.0]
+    trade_action_confidences = [0, 0.1, 0.3, 0.5, 0.7, 0.9, 1]
 
     evaluator = TradingBotHyperparamEvaluator(selection_method=selection_methods, mutation_method=mutation_methods,
                                               crossover_method=crossover_methods, population_size=population_sizes,
@@ -230,7 +228,8 @@ if __name__ == "__main__":
                                               initial_population_generation_fn=initial_population_generator,
                                               elitism_value=elitism_values, stopping_criteria_fn=stopping_criteria_fn,
                                               chromosome_validator_fn=chromosome_validator_fn,
-                                              stop_loss_ratio=stop_loss_ratios, take_profit_ratio=take_profit_ratios)
+                                              stop_loss_ratio=stop_loss_ratios, take_profit_ratio=take_profit_ratios,
+                                              trade_action_confidence=trade_action_confidences)
 
     evaluator.grid_search_parallel()
     """
