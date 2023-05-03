@@ -44,7 +44,7 @@ def test_invalid_chromosome_type():
     invalid_values = [123, "123", 1.23]
     for val in invalid_values:
         with pytest.raises(TypeError, match=r"Chromosome does not match required type: .*\. Chromosome: .*") as err:
-            Mutation.mutate_real_uniform(val)
+            Mutation.mutate_real_uniform(val, min=0, max=1)
 
 
 @mockenv(P_MUTATION="1.0")
