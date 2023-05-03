@@ -5,7 +5,7 @@ from unittest import mock
 import numpy as np
 import pytest
 
-from src.generic.model import Population, Solution
+from src.generic.model import Population, Solution, Hyperparams
 
 
 def mockenv(**envvars):
@@ -34,28 +34,34 @@ def dummy_population_validator_fn(members):
 
 @pytest.fixture
 def population_with_zero_fitness():
-    return Population(members=[Solution(np.asarray([0, 0, 0])) for _ in range(10)], crossover_fn=dummy_crossover_fn,
-                      mutation_fn=dummy_fn, fitness_fn=dummy_fitness, selection_fn=dummy_fn,
-                      initial_population_generator_fn=initial_population_generator, population_size=10, elitism=3,
-                      stopping_criteria_fn=dummy_fn, chromosome_validator_fn=dummy_population_validator_fn)
+    hyperparams = Hyperparams(crossover_fn=dummy_crossover_fn,
+                              mutation_fn=dummy_fn, fitness_fn=dummy_fitness, selection_fn=dummy_fn,
+                              initial_population_generator_fn=initial_population_generator, population_size=10,
+                              elitism=3,
+                              stopping_criteria_fn=dummy_fn, chromosome_validator_fn=dummy_population_validator_fn)
+    return Population(members=[Solution(np.asarray([0, 0, 0])) for _ in range(10)], hyperparams=hyperparams)
 
 
 @pytest.fixture
 def population_with_ninf_fitness():
+    hyperparams = Hyperparams(crossover_fn=dummy_crossover_fn,
+                              mutation_fn=dummy_fn, fitness_fn=dummy_fitness, selection_fn=dummy_fn,
+                              initial_population_generator_fn=initial_population_generator, population_size=10,
+                              elitism=3,
+                              stopping_criteria_fn=dummy_fn, chromosome_validator_fn=dummy_population_validator_fn)
     return Population(members=[Solution(np.asarray([0, 0, 0]), fitness=np.NINF) for _ in range(10)],
-                      crossover_fn=dummy_crossover_fn,
-                      mutation_fn=dummy_fn, fitness_fn=dummy_fitness, selection_fn=dummy_fn,
-                      initial_population_generator_fn=initial_population_generator, population_size=10, elitism=3,
-                      stopping_criteria_fn=dummy_fn, chromosome_validator_fn=dummy_population_validator_fn)
+                      hyperparams=hyperparams)
 
 
 @pytest.fixture
 def population_with_identical_solutions():
+    hyperparams = Hyperparams(crossover_fn=dummy_crossover_fn,
+                              mutation_fn=dummy_fn, fitness_fn=dummy_fitness, selection_fn=dummy_fn,
+                              initial_population_generator_fn=initial_population_generator, population_size=10,
+                              elitism=3,
+                              stopping_criteria_fn=dummy_fn, chromosome_validator_fn=dummy_population_validator_fn)
     return Population(members=[Solution(np.asarray([1, 0, 1]), fitness=1) for i in range(10)],
-                      crossover_fn=dummy_crossover_fn,
-                      mutation_fn=dummy_fn, fitness_fn=dummy_fitness, selection_fn=dummy_fn,
-                      initial_population_generator_fn=initial_population_generator, population_size=10, elitism=3,
-                      stopping_criteria_fn=dummy_fn, chromosome_validator_fn=dummy_population_validator_fn)
+                      hyperparams=hyperparams)
 
 
 @pytest.fixture(scope="class")
@@ -67,23 +73,23 @@ def configurable_population():
                       Solution(np.asarray([1, 1, 1, 0, 0]), fitness=3),
                       Solution(np.asarray([1, 1, 1, 1, 0]), fitness=4),
                       Solution(np.asarray([1, 1, 1, 1, 1]), fitness=5)]
-
-        return Population(members=population,
-                          crossover_fn=dummy_crossover_fn,
-                          mutation_fn=dummy_fn, fitness_fn=dummy_fitness, selection_fn=dummy_fn,
-                          initial_population_generator_fn=initial_population_generator, population_size=6,
-                          elitism=elitism,
-                          stopping_criteria_fn=stopping_criteria_fn,
-                          chromosome_validator_fn=dummy_population_validator_fn)
+        hyperparams = Hyperparams(crossover_fn=dummy_crossover_fn,
+                                  mutation_fn=dummy_fn, fitness_fn=dummy_fitness, selection_fn=dummy_fn,
+                                  initial_population_generator_fn=initial_population_generator, population_size=6,
+                                  elitism=elitism,
+                                  stopping_criteria_fn=stopping_criteria_fn,
+                                  chromosome_validator_fn=dummy_population_validator_fn)
+        return Population(members=population, hyperparams=hyperparams)
 
     return _population_with_growing_fitness
 
 
 @pytest.fixture
 def empty_population():
-    return Population(members=[], crossover_fn=dummy_crossover_fn, mutation_fn=dummy_fn, fitness_fn=dummy_fitness,
-                      selection_fn=dummy_fn, initial_population_generator_fn=initial_population_generator,
-                      population_size=0, elitism=3, stopping_criteria_fn=dummy_fn,
-                      chromosome_validator_fn=dummy_population_validator_fn)
+    hyperparams = Hyperparams(crossover_fn=dummy_crossover_fn, mutation_fn=dummy_fn, fitness_fn=dummy_fitness,
+                              selection_fn=dummy_fn, initial_population_generator_fn=initial_population_generator,
+                              population_size=0, elitism=3, stopping_criteria_fn=dummy_fn,
+                              chromosome_validator_fn=dummy_population_validator_fn)
+    return Population(members=[], hyperparams=hyperparams)
 
 # TODO make parametrized fixtures!!!!!!!!!!!

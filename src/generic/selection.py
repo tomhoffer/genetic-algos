@@ -24,9 +24,9 @@ class Selection:
 
         offspring_population = []
         members_to_select = len(population.members)
-        if eval_bool(os.environ.get("ELITISM")) and population.elitism > 0:
-            members_to_select = members_to_select - population.elitism
-            elites: List[Solution] = _find_best(population, population.elitism)
+        if eval_bool(os.environ.get("ELITISM")) and population.hyperparams.elitism > 0:
+            members_to_select = members_to_select - population.hyperparams.elitism
+            elites: List[Solution] = _find_best(population, population.hyperparams.elitism)
             offspring_population.extend(elites)
 
         for _ in range(members_to_select):
@@ -55,9 +55,9 @@ class Selection:
 
         offspring_population = []
         members_to_select = len(population.members)
-        if eval_bool(os.environ.get("ELITISM")) and population.elitism > 0:
-            members_to_select = members_to_select - population.elitism
-            elites: List[Solution] = _find_best(population, population.elitism)
+        if eval_bool(os.environ.get("ELITISM")) and population.hyperparams.elitism > 0:
+            members_to_select = members_to_select - population.hyperparams.elitism
+            elites: List[Solution] = _find_best(population, population.hyperparams.elitism)
             offspring_population.extend(elites)
 
         try:
@@ -83,9 +83,9 @@ class Selection:
 
         offspring_population = []
         members_to_select = len(population.members)
-        if eval_bool(os.environ.get("ELITISM")) and population.elitism > 0:
-            members_to_select = members_to_select - population.elitism
-            elites: List[Solution] = _find_best(population, population.elitism)
+        if eval_bool(os.environ.get("ELITISM")) and population.hyperparams.elitism > 0:
+            members_to_select = members_to_select - population.hyperparams.elitism
+            elites: List[Solution] = _find_best(population, population.hyperparams.elitism)
             offspring_population.extend(elites)
 
         members_ordered_by_fitness = sorted(population.members, key=lambda el: el.fitness)

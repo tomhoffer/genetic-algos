@@ -17,18 +17,10 @@ class TrainingExecutor:
         params: Hyperparams = args[0]
         process_id: int = args[1]
         logging.info(f"Running training with parameters: {params}")
-
-        p = Population(fitness_fn=params.fitness_fn,
-                       initial_population_generator_fn=params.initial_population_generator_fn,
-                       selection_fn=params.selection_fn, mutation_fn=params.mutation_fn,
-                       crossover_fn=params.crossover_fn, members=[], population_size=params.population_size,
-                       elitism=params.elitism, stopping_criteria_fn=params.stopping_criteria_fn,
-                       chromosome_validator_fn=params.chromosome_validator_fn)
-
-        return p.train(id=process_id)
+        return Population(members=[], hyperparams=params).train(id=process_id)
 
     @staticmethod
-    def run_parallel(params: Hyperparams):
+    def run_parallel(params: Hyperparams) -> Tuple[Solution, bool, int]:
         logging.info(f"Running parallel training with parameters: {params}")
         with Pool(processes=int(os.environ.get("N_PROCESSES"))) as pool:
 
@@ -62,3 +54,4 @@ class TrainingExecutor:
                     logging.info(
                         f"No solution found within {os.environ.get('MAX_ITERS')} iterations. Winner with fitness {winner.fitness} from process {winner_process_id} was: {winner.chromosome}")
                     break
+        return winner, False, winner_process_id

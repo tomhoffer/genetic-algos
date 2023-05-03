@@ -1,7 +1,6 @@
 import numpy as np
-import pandas
 from enum import IntEnum
-from typing import Dict, List
+from typing import Dict
 
 from src.tradingbot.config import Config
 

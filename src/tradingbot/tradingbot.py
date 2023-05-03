@@ -10,13 +10,14 @@ from dotenv import load_dotenv
 
 from src.generic.crossover import Crossover
 from src.generic.executor import TrainingExecutor
-from src.generic.hyperparams import HyperparamEvaluator
-from src.generic.model import Solution, Hyperparams
+from src.generic.model import Solution
 from src.generic.mutation import Mutation
 from src.generic.selection import Selection
 
 from src.tradingbot.config import Config
 from src.tradingbot.decisions import TradingStrategies, Decision
+from src.tradingbot.exceptions import InvalidTradeActionException
+from src.tradingbot.hyperparams import TradingBotHyperparamEvaluator, TradingBotHyperparams
 
 pd.options.mode.chained_assignment = None  # Disable SettingWithCopyWarning
 logging.basicConfig(level=logging.INFO)
@@ -25,14 +26,15 @@ backtesting = False
 
 
 @dataclass
-class Position:
+class BuyPosition:
     datetime: str
     amount: float
+    price_at_buy: float
 
 
 class TradingbotSolution(Solution):
     account_balance: float
-    bought_positions: List[Position]
+    bought_positions: List[BuyPosition]
 
     def __init__(self, chromosome: np.ndarray, account_balance: float = 0):
         self.account_balance = account_balance
@@ -42,7 +44,7 @@ class TradingbotSolution(Solution):
     def get_strategy_weights(self) -> np.ndarray:
         return self.chromosome
 
-    def buy(self, datetime: str, amount: float):
+    def buy(self, datetime: str, amount: float, price: float):
 
         if self.account_balance == 0:
             return
@@ -51,30 +53,34 @@ class TradingbotSolution(Solution):
         if 0 < self.account_balance < amount:
             amount_to_buy = self.account_balance
 
-        self.bought_positions.append(Position(datetime=datetime, amount=amount_to_buy))
+        self.bought_positions.append(BuyPosition(datetime=datetime, amount=amount_to_buy, price_at_buy=price))
         self.account_balance -= amount_to_buy
-        logging.debug("Buying for %sUSD on date %s", amount, datetime)
+        logging.debug("Buying for %sUSD on date %s with price %s", amount, datetime, price)
 
-    def sell(self, datetime: str):
+    def sell(self, datetime: str, index: int):
+        """
+        :param datetime: Datetime of sell action
+        :param index: Index in the BuyPosition.bought_positions list
+        """
         if len(self.bought_positions) == 0:
             return
-        # Sell the first open buy position
-        position_to_sell: Position = self.bought_positions[0]
+
+        try:
+            sold_position: BuyPosition = self.bought_positions.pop(index)
+        except IndexError:
+            raise InvalidTradeActionException(message=f"Attempting to sell a position on invalid index: {index}")
+
         df: pd.DataFrame = load_ticker_data()
         ticker_value_at_sell: float = df.at[datetime, f"{Config.get_value('TRADED_TICKER_NAME')}_Adj Close"]
-        ticker_value_at_buy: float = df.at[
-            position_to_sell.datetime, f"{Config.get_value('TRADED_TICKER_NAME')}_Adj Close"]
-        profit: float = (ticker_value_at_sell / ticker_value_at_buy * position_to_sell.amount)
-
-        self.bought_positions.pop(0)
+        profit: float = (ticker_value_at_sell / sold_position.price_at_buy * sold_position.amount)
         self.account_balance += profit
         logging.debug("Selling with profit of %s on date %s", profit, datetime)
 
     def sell_all(self, datetime: str):
         if len(self.bought_positions) == 0:
             return
-        for _ in range(len(self.bought_positions)):
-            self.sell(datetime)
+        for i in range(len(self.bought_positions)):
+            self.sell(datetime=datetime, index=0)
 
 
 @cache
@@ -125,28 +131,39 @@ def fitness(chromosome: np.ndarray) -> float:
     solution = TradingbotSolution(chromosome=chromosome, account_balance=Config.get_value('BUDGET'))
 
     def decide_row(row: np.array):
+        ticker_price: float = row[row_np_index[Config.get_value('TRADED_TICKER_NAME') + '_Adj Close']]
+        # If stop_loss or take_profit criteria are met
+        while True:
+            sold = False
+            for index, position in enumerate(solution.bought_positions):
+                value_proportion: float = ticker_price / position.price_at_buy
+                if value_proportion >= Config.get_value(
+                        'TAKE_PROFIT_PROPORTION') or value_proportion <= Config.get_value('STOP_LOSS_PROPORTION'):
+                    solution.sell(datetime=row[row_np_index['datetime']], index=index)
+                    sold = True
+                    break
+            if not sold:
+                break
+
         # Make decision based on all trading strategies and their weights
         decisions: np.array = np.array(list(ts.perform_decisions_for_row(row, row_np_index).values()))
         decisions_sum = np.sum(np.multiply(chromosome, decisions))
+        decision_threshold: float = abs(Config.get_value('TRADE_ACTION_CONFIDENCE'))
 
-        if 0 < decisions_sum < 0.5:
+        result = Decision.INCONCLUSIVE
+        if decisions_sum > decision_threshold:
             result = Decision.BUY
-        elif decisions_sum >= 0.5:
-            result = Decision.STRONG_BUY
-        elif decisions_sum <= -0.5:
-            result = Decision.STRONG_SELL
-        elif -0.5 < decisions_sum < 0:
+        elif decisions_sum < (-1) * decision_threshold:
             result = Decision.SELL
-        else:
-            result = Decision.INCONCLUSIVE
 
         logging.debug("Result based on individual decisions: %s", result)
 
-        if result == Decision.STRONG_BUY:
+        if result == Decision.BUY:
             solution.buy(datetime=timestamp_to_str(row[row_np_index['datetime']]),
-                         amount=Config.get_value("TRADE_SIZE"))
-        elif result == Decision.STRONG_SELL:
-            solution.sell(datetime=timestamp_to_str(row[row_np_index['datetime']]))
+                         amount=Config.get_value("TRADE_SIZE"),
+                         price=ticker_price)
+        elif result == Decision.SELL:
+            solution.sell(datetime=timestamp_to_str(row[row_np_index['datetime']]), index=0)
 
     np.apply_along_axis(decide_row, axis=1, arr=evaluation_data)
     # Close all trades at the end of the period to evaluate solution performance
@@ -173,16 +190,21 @@ def mutate_uniform(chromosome: np.ndarray) -> np.ndarray:
 
 
 if __name__ == "__main__":
-    params = Hyperparams(crossover_fn=Crossover.single_point,
-                         initial_population_generator_fn=initial_population_generator,
-                         mutation_fn=mutate_uniform,
-                         selection_fn=Selection.rank,
-                         fitness_fn=fitness, population_size=Config.get_value("POPULATION_SIZE"), elitism=1,
-                         stopping_criteria_fn=stopping_criteria_fn, chromosome_validator_fn=chromosome_validator_fn)
+    params = TradingBotHyperparams(crossover_fn=Crossover.two_point,
+                                   initial_population_generator_fn=initial_population_generator,
+                                   mutation_fn=mutate_uniform,
+                                   selection_fn=Selection.tournament,
+                                   fitness_fn=fitness, population_size=Config.get_value("POPULATION_SIZE"), elitism=1,
+                                   stopping_criteria_fn=stopping_criteria_fn,
+                                   chromosome_validator_fn=chromosome_validator_fn,
+                                   stop_loss_ratio=Config.get_value("STOP_LOSS_PROPORTION"),
+                                   take_profit_ratio=Config.get_value("TAKE_PROFIT_PROPORTION"),
+                                   trade_action_confidence=Config.get_value("TRADE_ACTION_CONFIDENCE"))
 
     logging.info("Training on period: %s - %s", timestamp_to_str(Config.get_value("START_TIMESTAMP")),
                  timestamp_to_str(Config.get_value("END_TIMESTAMP")))
-    winner, success, id = TrainingExecutor.run((params, 1))
+    # winner, success, id = TrainingExecutor.run((params, 1))
+    winner, success, id = TrainingExecutor.run_parallel(params)
     logging.info("Found winner with weights %s and resulting account balance %s",
                  [el for el in zip(get_trading_strategy_method_names(), winner.chromosome)], winner.fitness)
 
@@ -195,13 +217,20 @@ if __name__ == "__main__":
     # crossover_methods = [Crossover.two_point, Crossover.single_point, Crossover.uniform]
     crossover_methods = [Crossover.single_point]
     mutation_methods = [mutate_uniform]
-    population_sizes = [10, 500, 1000]
-    elitism_values = [3]
+    population_sizes = [10]
+    elitism_values = [1]
+    stop_loss_ratios = [0.5, 0.6, 0.7, 0.8, 0.9]
+    take_profit_ratios = [1.1, 1.2, 1.3, 1.5, 1.7, 2.0]
+    trade_action_confidences = [0, 0.1, 0.3, 0.5, 0.7, 0.9, 1]
 
-    evaluator = HyperparamEvaluator(selection_methods=selection_methods, mutation_methods=mutation_methods,
-                                    crossover_methods=crossover_methods, population_sizes=population_sizes,
-                                    fitness_fn=fitness, initial_population_generation_fn=initial_population_generator,
-                                    elitism_values=elitism_values, stopping_criteria_fn=stopping_criteria_fn,
-                                    chromosome_validator_fn=chromosome_validator_fn)
+    evaluator = TradingBotHyperparamEvaluator(selection_method=selection_methods, mutation_method=mutation_methods,
+                                              crossover_method=crossover_methods, population_size=population_sizes,
+                                              fitness_fn=fitness,
+                                              initial_population_generation_fn=initial_population_generator,
+                                              elitism_value=elitism_values, stopping_criteria_fn=stopping_criteria_fn,
+                                              chromosome_validator_fn=chromosome_validator_fn,
+                                              stop_loss_ratio=stop_loss_ratios, take_profit_ratio=take_profit_ratios,
+                                              trade_action_confidence=trade_action_confidences)
 
     evaluator.grid_search_parallel()
+    """

@@ -55,10 +55,10 @@ if __name__ == "__main__":
     population_sizes = [10, 100, 200]
     elitism_values = [1, 2, 3]
 
-    evaluator = HyperparamEvaluator(selection_methods=selection_methods, mutation_methods=mutation_methods,
-                                    crossover_methods=crossover_methods, population_sizes=population_sizes,
+    evaluator = HyperparamEvaluator(selection_method=selection_methods, mutation_method=mutation_methods,
+                                    crossover_method=crossover_methods, population_size=population_sizes,
                                     fitness_fn=fitness, initial_population_generation_fn=initial_population_generator,
-                                    elitism_values=elitism_values, chromosome_validator_fn=chromosome_validator_fn,
+                                    elitism_value=elitism_values, chromosome_validator_fn=chromosome_validator_fn,
                                     stopping_criteria_fn=stopping_criteria_fn)
 
     evaluator.grid_search_parallel()

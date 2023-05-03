@@ -1,5 +1,6 @@
 import os
-from functools import cache
+import sys
+from functools import lru_cache
 from typing import get_type_hints, Any
 from dotenv import load_dotenv
 
@@ -27,6 +28,9 @@ class Config:
     ELITISM = False
     P_MUTATION: float
     TRADED_TICKER_NAME: str
+    STOP_LOSS_PROPORTION: float
+    TAKE_PROFIT_PROPORTION: float
+    TRADE_ACTION_CONFIDENCE: float
 
     """
     Map environment variables to class fields according to these rules:
@@ -35,7 +39,7 @@ class Config:
     """
 
     @staticmethod
-    @cache
+    @lru_cache(maxsize=0 if "pytest" in sys.modules else 256)
     def get_value(value: str) -> Any:
         # Cast env var value to expected type and raise AppConfigError on failure
         var_type = get_type_hints(Config)[value]
