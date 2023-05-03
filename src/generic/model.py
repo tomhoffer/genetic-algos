@@ -78,12 +78,13 @@ class Population(PopulationBase):
     members: List[Solution]
     hyperparams: Hyperparams
 
-    def train(self, id: int) -> Tuple[Solution, bool, int]:
+    def train(self, id: int, return_global_winner=False) -> Tuple[Solution, bool, int]:
 
         """
         :param self:
         :param id: Process identifier
         :param wandb_config: Config object for wandb service
+        :param return_global_winner: Return the best solution found along the path instead of the last one
         :return: Solution, boolean indicating whether result was found or not, process identifier
         """
 
@@ -93,6 +94,8 @@ class Population(PopulationBase):
             run = wandb.init(project="genetic-algos", config=self.hyperparams.get_wandb_config(), reinit=True)
 
         winner = None
+        global_winner = None
+        global_winner_fitness: float = - np.inf
         success = False
         self.generate_initial_population()
 
@@ -102,7 +105,11 @@ class Population(PopulationBase):
             self.perform_crossover()
             self.perform_mutation()
             self.refresh_fitness()
+
             winner, winner_fitness = self.get_winner()
+            if winner_fitness > global_winner_fitness:
+                global_winner_fitness = winner_fitness
+                global_winner = winner
 
             if eval_bool(os.environ.get("ENABLE_WANDB")):
                 wandb.log({
@@ -116,7 +123,11 @@ class Population(PopulationBase):
         if eval_bool(os.environ.get("ENABLE_WANDB")):
             run.finish()
         self.refresh_fitness()
-        return winner, success, id
+
+        if return_global_winner:
+            return global_winner, success, id
+        else:
+            return winner, success, id
 
     def generate_initial_population(self):
         self.members = self.hyperparams.initial_population_generator_fn()

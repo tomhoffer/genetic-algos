@@ -202,8 +202,8 @@ if __name__ == "__main__":
 
     logging.info("Training on period: %s - %s", timestamp_to_str(Config.get_value("START_TIMESTAMP")),
                  timestamp_to_str(Config.get_value("END_TIMESTAMP")))
-    # winner, success, id = TrainingExecutor.run((params, 1))
-    winner, success, id = TrainingExecutor.run_parallel(params)
+    winner, success, id = TrainingExecutor.run((params, 1), return_global_winner=True)
+    # winner, success, id = TrainingExecutor.run_parallel(params, return_global_winner=True)
     logging.info("Found winner with weights %s and resulting account balance %s",
                  [el for el in zip(get_trading_strategy_method_names(), winner.chromosome)], winner.fitness)
 
