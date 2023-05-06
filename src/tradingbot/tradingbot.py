@@ -2,11 +2,12 @@ import logging
 from dataclasses import dataclass
 from datetime import datetime
 from functools import cache
-from typing import List, Hashable
+from typing import List, Hashable, Dict, Tuple
 
 import numpy as np
 import pandas as pd
 from dotenv import load_dotenv
+import matplotlib.pyplot as plt
 
 from src.generic.crossover import Crossover
 from src.generic.executor import TrainingExecutor
@@ -115,7 +116,8 @@ def initial_population_generator() -> List[TradingbotSolution]:
     return result
 
 
-def fitness(chromosome: np.ndarray) -> float:
+def fitness(chromosome: np.ndarray) -> float | Tuple[float, List]:
+    transaction_log: List[Dict] = []
     if backtesting:
         end_date: str = timestamp_to_str(Config.get_value("BACKTEST_END_TIMESTAMP"))
         start_date: str = timestamp_to_str(Config.get_value("BACKTEST_START_TIMESTAMP"))
@@ -132,6 +134,8 @@ def fitness(chromosome: np.ndarray) -> float:
 
     def decide_row(row: np.array):
         ticker_price: float = row[row_np_index[Config.get_value('TRADED_TICKER_NAME') + '_Adj Close']]
+        row_datetime: str = timestamp_to_str(row[row_np_index['datetime']])
+
         # If stop_loss or take_profit criteria are met
         while True:
             sold = False
@@ -139,7 +143,7 @@ def fitness(chromosome: np.ndarray) -> float:
                 value_proportion: float = ticker_price / position.price_at_buy
                 if value_proportion >= Config.get_value(
                         'TAKE_PROFIT_PROPORTION') or value_proportion <= Config.get_value('STOP_LOSS_PROPORTION'):
-                    solution.sell(datetime=row[row_np_index['datetime']], index=index)
+                    solution.sell(datetime=row_datetime, index=index)
                     sold = True
                     break
             if not sold:
@@ -159,16 +163,21 @@ def fitness(chromosome: np.ndarray) -> float:
         logging.debug("Result based on individual decisions: %s", result)
 
         if result == Decision.BUY:
-            solution.buy(datetime=timestamp_to_str(row[row_np_index['datetime']]),
-                         amount=Config.get_value("TRADE_SIZE"),
-                         price=ticker_price)
+            solution.buy(datetime=row_datetime, amount=Config.get_value("TRADE_SIZE"), price=ticker_price)
         elif result == Decision.SELL:
-            solution.sell(datetime=timestamp_to_str(row[row_np_index['datetime']]), index=0)
+            solution.sell(datetime=row_datetime, index=0)
+
+        if backtesting:
+            transaction_log.append({'type': result, 'datetime': row_datetime, 'price': ticker_price})
 
     np.apply_along_axis(decide_row, axis=1, arr=evaluation_data)
     # Close all trades at the end of the period to evaluate solution performance
     solution.sell_all(datetime=end_date)
     solution.fitness = solution.account_balance
+
+    if backtesting:
+        return solution.fitness, transaction_log
+
     return solution.fitness
 
 
@@ -188,6 +197,28 @@ def mutate_uniform(chromosome: np.ndarray) -> np.ndarray:
     return Mutation.mutate_real_uniform(chromosome, use_abs=True, max=1.0, min=0)
 
 
+def backtest():
+    print("Starting backtest...")
+    winner_fitness, transaction_log = fitness(winner.chromosome)
+    print(f"Resulting account balance over backtesting period: {winner_fitness}")
+
+    fig, ax = plt.subplots()
+    end_date: str = timestamp_to_str(Config.get_value("BACKTEST_END_TIMESTAMP"))
+    start_date: str = timestamp_to_str(Config.get_value("BACKTEST_START_TIMESTAMP"))
+    ticker_df: pd.DataFrame = load_ticker_data()[start_date:end_date]
+    ax.plot(ticker_df.index, ticker_df[f"{Config.get_value('TRADED_TICKER_NAME')}_Adj Close"])
+
+    buys = [(datetime.strptime(log['datetime'], '%Y-%m-%d'), log['price']) for log in transaction_log if
+            log['type'] == Decision.BUY]
+    sells = [(datetime.strptime(log['datetime'], '%Y-%m-%d'), log['price']) for log in transaction_log if
+             log['type'] == Decision.SELL]
+
+    for buy, sell in zip(buys, sells):
+        plt.scatter(x=buy[0], y=buy[1], color='g')
+        plt.scatter(x=sell[0], y=sell[1], color='r')
+    plt.show()
+
+
 if __name__ == "__main__":
     params = TradingBotHyperparams(crossover_fn=Crossover.two_point,
                                    initial_population_generator_fn=initial_population_generator,
@@ -200,16 +231,16 @@ if __name__ == "__main__":
                                    take_profit_ratio=Config.get_value("TAKE_PROFIT_PROPORTION"),
                                    trade_action_confidence=Config.get_value("TRADE_ACTION_CONFIDENCE"))
 
-    logging.info("Training on period: %s - %s", timestamp_to_str(Config.get_value("START_TIMESTAMP")),
-                 timestamp_to_str(Config.get_value("END_TIMESTAMP")))
+    print(
+        f"Training on period: {timestamp_to_str(Config.get_value('START_TIMESTAMP'))} - {timestamp_to_str(Config.get_value('END_TIMESTAMP'))}")
     winner, success, id = TrainingExecutor.run((params, 1), return_global_winner=True)
-    # winner, success, id = TrainingExecutor.run_parallel(params, return_global_winner=True)
-    logging.info("Found winner with weights %s and resulting account balance %s",
-                 [el for el in zip(get_trading_strategy_method_names(), winner.chromosome)], winner.fitness)
+    #winner, success, id = TrainingExecutor.run_parallel(params, return_global_winner=True)
+    print(
+        f"Found winner with weights {[el for el in zip(get_trading_strategy_method_names(), winner.chromosome)]} and resulting account balance {winner.fitness}")
 
     backtesting = True
-    logging.info("Starting backtest...")
-    logging.info("Resulting account balance over backtesting period: %s", fitness(winner.chromosome))
+    backtest()
+
     """
     # selection_methods = [Selection.tournament, Selection.roulette, Selection.rank]
     selection_methods = [Selection.rank]
@@ -231,5 +262,5 @@ if __name__ == "__main__":
                                               stop_loss_ratio=stop_loss_ratios, take_profit_ratio=take_profit_ratios,
                                               trade_action_confidence=trade_action_confidences)
 
-    evaluator.grid_search_parallel()
+    evaluator.grid_search_parallel(return_global_winner=True)
     """
