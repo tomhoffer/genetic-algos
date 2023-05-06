@@ -287,5 +287,9 @@ class TradingStrategies:
                                             adx_neg_value=row[row_np_index['trend_adx_neg']])
         result_obj['vi'] = self.decide_vi(vortex_diff_value=row[row_np_index['trend_vortex_ind_diff']])
         result_obj['trix'] = self.decide_trix(trix_value=row[row_np_index['trend_trix']])
-        result_obj['sentiment'] = self.decide_sentiment(sentiment_value=row[row_np_index['sentiment']])
+
+        try:
+            result_obj['sentiment'] = self.decide_sentiment(sentiment_value=row[row_np_index['sentiment']])
+        except (KeyError, IndexError):  # Missing sentiment column
+            result_obj['sentiment'] = Decision.INCONCLUSIVE
         return result_obj

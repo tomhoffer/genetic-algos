@@ -85,7 +85,8 @@ class TradingbotSolution(Solution):
 
 
 @cache
-def load_ticker_data(path: str = 'data.csv') -> pd.DataFrame:
+def load_ticker_data(
+        path: str = f"data/data-{Config.get_value('TRADED_TICKER_NAME')}.csv") -> pd.DataFrame:
     return pd.read_csv(path, parse_dates=['Date'], index_col=['Date'])
 
 
