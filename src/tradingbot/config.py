@@ -28,9 +28,6 @@ class Config:
     ELITISM = False
     P_MUTATION: float
     TRADED_TICKER_NAME: str
-    STOP_LOSS_PROPORTION: float
-    TAKE_PROFIT_PROPORTION: float
-    TRADE_ACTION_CONFIDENCE: float
 
     """
     Map environment variables to class fields according to these rules:

@@ -5,7 +5,7 @@ from conftest import mockenv
 from src.tradingbot.decisions import Decision
 from src.tradingbot.exceptions import InvalidTradeActionException
 from src.tradingbot.tradingbot import TradingbotSolution, initial_population_generator, BuyPosition, load_ticker_data, \
-    fitness
+    fitness, chromosome_validator_fn
 
 
 @mockenv(POPULATION_SIZE="10")
@@ -14,8 +14,7 @@ def test_generate_initial_population():
 
     assert len(population) == 10
     for element in population:
-        # Timestamps within range
-        assert np.all((element.chromosome >= 0) & (element.chromosome <= 1))
+        assert chromosome_validator_fn(element)
 
 
 def test_tradingbotsolution_sell_all(mocker):
@@ -69,8 +68,7 @@ def test_buy_sell(mocker):
     assert s.account_balance == 10 + 50
 
 
-@mockenv(TAKE_PROFIT_PROPORTION="1.2", TRADED_TICKER_NAME="INCREASING", START_TIMESTAMP="34361", END_TIMESTAMP="811961",
-         BUDGET="10", TRADE_SIZE="10")
+@mockenv(TRADED_TICKER_NAME="INCREASING", START_TIMESTAMP="34361", END_TIMESTAMP="811961", BUDGET="10", TRADE_SIZE="10")
 def test_take_profit(mocker):
     # Buy on first date, inconclusive on other dates, Take profit should trigger when threshold is hit
     df = load_ticker_data('test/tradingbot/test_data.csv')
@@ -78,15 +76,14 @@ def test_take_profit(mocker):
     mocker.patch('src.tradingbot.decisions.TradingStrategies.perform_decisions_for_row',
                  side_effect=[{"dummy_strategy": Decision.BUY if i == 0 else Decision.INCONCLUSIVE} for i in range(10)])
 
-    chromosome = np.asarray([1.0])
+    chromosome = np.asarray([1.0, 1.2, 1.0])
     s = TradingbotSolution(chromosome=chromosome)
     s.buy(datetime='1970-01-01', price=10, amount=1)
     result = fitness(chromosome)
     np.testing.assert_almost_equal(result, 12, decimal=2)
 
 
-@mockenv(STOP_LOSS_PROPORTION="0.8", TRADED_TICKER_NAME="DECREASING", START_TIMESTAMP="34361", END_TIMESTAMP="811961",
-         BUDGET="10", TRADE_SIZE="10")
+@mockenv(TRADED_TICKER_NAME="DECREASING", START_TIMESTAMP="34361", END_TIMESTAMP="811961", BUDGET="10", TRADE_SIZE="10")
 def test_stop_loss(mocker):
     # Buy on first date, inconclusive on other dates, Stop loss should trigger when threshold is hit
     df = load_ticker_data('test/tradingbot/test_data.csv')
@@ -94,7 +91,7 @@ def test_stop_loss(mocker):
     mocker.patch('src.tradingbot.decisions.TradingStrategies.perform_decisions_for_row',
                  side_effect=[{"dummy_strategy": Decision.BUY if i == 0 else Decision.INCONCLUSIVE} for i in range(10)])
 
-    chromosome = np.asarray([1.0])
+    chromosome = np.asarray([1.0, 2.0, 0.8])
     s = TradingbotSolution(chromosome=chromosome)
     s.buy(datetime='1970-01-01', price=10, amount=1)
     result = fitness(chromosome)
@@ -138,15 +135,14 @@ def test_buy_failed(mocker):
     assert len(s.bought_positions) == 0
 
 
-@mockenv(TRADED_TICKER_NAME="AAPL", START_TIMESTAMP="34361", END_TIMESTAMP="811961", BUDGET="100", TRADE_SIZE="10",
-         STOP_LOSS_PROPORTION="0", TAKE_PROFIT_PROPORTION="10000000")
+@mockenv(TRADED_TICKER_NAME="AAPL", START_TIMESTAMP="34361", END_TIMESTAMP="811961", BUDGET="100", TRADE_SIZE="10")
 def test_tradingbotsolution_fitness(mocker):
     # Fitness works correctly for a dummy chromosome with only 1 strategy (100% weight)
     # Date range = 1970-01-01 -> 1970-01-10
     # Stop loss and take profit are intentionally suppressed in this test
     df = load_ticker_data('test/tradingbot/test_data.csv')
     mocker.patch('src.tradingbot.tradingbot.load_ticker_data', return_value=df)
-    chromosome = np.asarray([1.0])
+    chromosome = np.asarray([1.0, 1000.0, 0])
 
     # Decisions: Buy gradually every day, sell everything at the end
     mocker.patch('src.tradingbot.decisions.TradingStrategies.perform_decisions_for_row',
