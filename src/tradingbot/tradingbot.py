@@ -117,7 +117,8 @@ def initial_population_generator() -> List[TradingbotSolution]:
     return result
 
 
-def fitness(chromosome: np.ndarray) -> float | Tuple[float, List]:
+@np_cache
+def fitness(chromosome: np.ndarray, backtesting: bool = False) -> float | Tuple[float, List]:
     transaction_log: List[Dict] = []
     if backtesting:
         end_date: str = timestamp_to_str(Config.get_value("BACKTEST_END_TIMESTAMP"))
@@ -138,17 +139,18 @@ def fitness(chromosome: np.ndarray) -> float | Tuple[float, List]:
         row_datetime: str = timestamp_to_str(row[row_np_index['datetime']])
 
         # If stop_loss or take_profit criteria are met
-        while True:
-            sold = False
-            for index, position in enumerate(solution.bought_positions):
-                value_proportion: float = ticker_price / position.price_at_buy
-                if value_proportion >= Config.get_value(
-                        'TAKE_PROFIT_PROPORTION') or value_proportion <= Config.get_value('STOP_LOSS_PROPORTION'):
-                    solution.sell(datetime=row_datetime, index=index)
-                    sold = True
+        if solution.bought_positions:
+            while True:
+                sold = False
+                for index, position in enumerate(solution.bought_positions):
+                    value_proportion: float = ticker_price / position.price_at_buy
+                    if value_proportion >= Config.get_value(
+                            'TAKE_PROFIT_PROPORTION') or value_proportion <= Config.get_value('STOP_LOSS_PROPORTION'):
+                        solution.sell(datetime=row_datetime, index=index)
+                        sold = True
+                        break
+                if not sold:
                     break
-            if not sold:
-                break
 
         # Make decision based on all trading strategies and their weights
         decisions: np.array = np.array(list(ts.perform_decisions_for_row(row, row_np_index).values()))
@@ -198,9 +200,9 @@ def mutate_uniform(chromosome: np.ndarray) -> np.ndarray:
     return Mutation.mutate_real_uniform(chromosome, use_abs=True, max=1.0, min=0)
 
 
-def backtest():
+def backtest(winner: Solution):
     print("Starting backtest...")
-    winner_fitness, transaction_log = fitness(winner.chromosome)
+    winner_fitness, transaction_log = fitness(winner.chromosome, backtesting=True)
     print(f"Resulting account balance over backtesting period: {winner_fitness}")
 
     fig, ax = plt.subplots()
@@ -239,8 +241,7 @@ if __name__ == "__main__":
     print(
         f"Found winner with weights {[el for el in zip(get_trading_strategy_method_names(), winner.chromosome)]} and resulting account balance {winner.fitness}")
 
-    backtesting = True
-    backtest()
+    backtest(winner)
 
     """
     # selection_methods = [Selection.tournament, Selection.roulette, Selection.rank]
