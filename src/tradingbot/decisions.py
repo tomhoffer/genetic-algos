@@ -91,6 +91,20 @@ class TradingStrategies:
             return Decision.INCONCLUSIVE
         return Decision.BUY if vpt_value > vpt_sma_value else Decision.SELL
 
+    @classmethod
+    def decide_vpt_adx(cls, vpt_value: float, vpt_sma_value: float, adx_value: float) -> Decision:
+        """
+            ADX indicator confirmed by VPT indicator
+                :param vpt_value:
+                :param vpt_sma_value: Simple moving average of the VPT
+                :return: Signal to buy or sell based on VPT and ADX
+                """
+        result_vpt: Decision = cls.decide_vpt(vpt_value=vpt_value, vpt_sma_value=vpt_sma_value)
+
+        if adx_value > 25:
+            return result_vpt
+        return Decision.INCONCLUSIVE
+
     @staticmethod
     def decide_macd(macd_value: float, macd_signal_value: float) -> Decision:
         """
@@ -266,6 +280,9 @@ class TradingStrategies:
         result_obj['em'] = self.decide_cmf(row[row_np_index['volume_em']])
         result_obj['vpt'] = self.decide_vpt(vpt_value=row[row_np_index['volume_vpt']],
                                             vpt_sma_value=row[row_np_index['volume_vpt_sma']])
+        result_obj['vpt_adx'] = self.decide_vpt_adx(vpt_value=row[row_np_index['volume_vpt']],
+                                                    vpt_sma_value=row[row_np_index['volume_vpt_sma']],
+                                                    adx_value=row[row_np_index['trend_adx']])
         result_obj['macd'] = self.decide_macd(macd_value=row[row_np_index['trend_macd']],
                                               macd_signal_value=row[row_np_index['trend_macd_signal']])
         result_obj['nvi'] = self.decide_nvi(nvi_value=row[row_np_index['volume_nvi']],
