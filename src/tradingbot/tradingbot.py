@@ -83,14 +83,17 @@ class TradingbotSolution(Solution):
         for i in range(len(self.bought_positions)):
             self.sell(datetime=datetime, index=0)
 
-    def parse_chromosome_stop_loss(self):
+    def parse_chromosome_trade_size(self):
         return self.chromosome[-1]
 
-    def parse_chromosome_take_profit(self):
+    def parse_chromosome_stop_loss(self):
         return self.chromosome[-2]
 
+    def parse_chromosome_take_profit(self):
+        return self.chromosome[-3]
+
     def parse_strategy_weights(self):
-        return self.chromosome[:-2]
+        return self.chromosome[:-3]
 
 
 @cache
@@ -123,7 +126,8 @@ def initial_population_generator() -> List[TradingbotSolution]:
         strategy_weights: np.ndarray = rng.random(num_of_strategies)
         take_profit_ratio: float = rng.uniform(low=1, high=2)
         stop_loss_ratio: float = rng.uniform(low=0, high=1)
-        chromosome: np.ndarray = np.append(strategy_weights, [take_profit_ratio, stop_loss_ratio])
+        trade_size: float = rng.uniform(low=10, high=100)
+        chromosome: np.ndarray = np.append(strategy_weights, [take_profit_ratio, stop_loss_ratio, trade_size])
         result.append(TradingbotSolution(chromosome))
         logging.debug("Generated random individual with chromosome %s", chromosome)
     return result
@@ -148,6 +152,7 @@ def fitness(chromosome: np.ndarray, backtesting: bool = False) -> float | Tuple[
     solution = TradingbotSolution(chromosome=chromosome, account_balance=Config.get_value('BUDGET'))
     take_profit_proportion: float = solution.parse_chromosome_take_profit()
     stop_loss_proportion: float = solution.parse_chromosome_stop_loss()
+    trade_size: float = solution.parse_chromosome_trade_size()
 
     def decide_row(row: np.array):
         ticker_price: float = row[row_np_index[Config.get_value('TRADED_TICKER_NAME') + '_Adj Close']]
@@ -173,8 +178,8 @@ def fitness(chromosome: np.ndarray, backtesting: bool = False) -> float | Tuple[
         result = Decision.INCONCLUSIVE
         if decisions_sum > 0:
             # Buy based on confidence
-            trade_size = Config.get_value("TRADE_SIZE") * (1 + decisions_sum)
-            solution.buy(datetime=row_datetime, amount=trade_size, price=ticker_price)
+            trade_size_adjusted = trade_size * (1 + decisions_sum)
+            solution.buy(datetime=row_datetime, amount=trade_size_adjusted, price=ticker_price)
             result = Decision.BUY
         elif decisions_sum < 0:
             # Sell oldest trade
@@ -203,9 +208,10 @@ def chromosome_validator_fn(solution: TradingbotSolution) -> bool:
     strategy_weights: np.ndarray = solution.parse_strategy_weights()
     take_profit_ratio: float = solution.parse_chromosome_take_profit()
     stop_loss_ratio: float = solution.parse_chromosome_stop_loss()
+    trade_size: float = solution.parse_chromosome_trade_size()
     return np.all((strategy_weights >= 0) & (strategy_weights <= 1)) and \
         (1 <= take_profit_ratio < 2) and \
-        (0 <= stop_loss_ratio < 1)
+        (0 <= stop_loss_ratio < 1) and (0 < trade_size)
 
 
 def mutate_gaussian(chromosome: np.ndarray) -> np.ndarray:
@@ -217,13 +223,16 @@ def mutate_uniform(chromosome: np.ndarray) -> np.ndarray:
     strategy_weights: np.ndarray = solution.parse_strategy_weights()
     take_profit_ratio: float = solution.parse_chromosome_take_profit()
     stop_loss_ratio: float = solution.parse_chromosome_take_profit()
+    trade_size: float = solution.parse_chromosome_trade_size()
 
     mutated_weights: np.ndarray = Mutation.mutate_real_uniform(strategy_weights, use_abs=True, max=1.0, min=0)
     mutated_stop_loss: np.ndarray = Mutation.mutate_real_uniform(np.asarray([stop_loss_ratio]), use_abs=True, max=1.0,
                                                                  min=0)
     mutated_take_profit: np.ndarray = Mutation.mutate_real_uniform(np.asarray([take_profit_ratio]), use_abs=True, max=2,
                                                                    min=1)
-    return np.concatenate((mutated_weights, mutated_take_profit, mutated_stop_loss))
+    mutated_trade_size: np.ndarray = Mutation.mutate_real_uniform(np.asarray([trade_size]), use_abs=True, max=100,
+                                                                  min=1)
+    return np.concatenate((mutated_weights, mutated_take_profit, mutated_stop_loss, mutated_trade_size))
 
 
 def backtest(winner: Solution):

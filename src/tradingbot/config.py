@@ -16,7 +16,6 @@ class AppConfigError(Exception):
 # AppConfig class with required fields, default values, type checking, and typecasting for int and bool values
 class Config:
     BUDGET: float
-    TRADE_SIZE: float
     START_TIMESTAMP: int
     END_TIMESTAMP: int
     BACKTEST_END_TIMESTAMP: int
