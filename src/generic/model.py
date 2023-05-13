@@ -112,9 +112,12 @@ class Population(PopulationBase):
                 global_winner = winner
 
             if eval_bool(os.environ.get("ENABLE_WANDB")):
-                wandb.log({
+                wandb_log = {
                     "fitness": winner_fitness
-                }, step=i)
+                }
+                for j in range(len(winner.chromosome)):
+                    wandb_log[str(j)] = winner.chromosome[j]
+                wandb.log(wandb_log, step=i)
 
             if self.hyperparams.stopping_criteria_fn(winner):
                 success = True
