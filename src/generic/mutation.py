@@ -56,15 +56,15 @@ class Mutation:
 
         result = sequence.copy()
         probability = float(os.environ.get("P_MUTATION", default=0.01))
-        rng = np.random.default_rng()
 
-        with np.nditer(result, op_flags=['readwrite']) as it:
-            for x in it:
-                if random.random() < probability:
-                    logging.debug("Mutation probability hit! Mutating gene: %s...", sequence)
-                    x[...] = rng.uniform(low=min, high=max, size=1)
-        if use_abs:
-            result = np.abs(result)
+        if random.random() < probability:
+            rng = np.random.default_rng()
+            logging.debug("Mutation probability hit! Mutating gene: %s...", sequence)
+            chromosome_length = len(sequence)
+            mutated_position: int = np.random.randint(low=0, high=chromosome_length, size=1)
+            result[mutated_position] = rng.uniform(low=min, high=max, size=1)
+            if use_abs:
+                result = np.abs(result)
         return result
 
     @staticmethod
