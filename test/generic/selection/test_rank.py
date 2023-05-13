@@ -43,8 +43,10 @@ def test_elitism_enabled(configurable_population):
 
     elite_individuals = sorted(old_population.members, key=lambda x: x.fitness, reverse=True)[:3]
     assert len(result) == len(old_population.members)
+
     for elite in elite_individuals:
         assert elite in result
+        assert result.count(elite) == 1
 
 
 @mockenv(ELITISM="True")
