@@ -91,6 +91,20 @@ class TradingStrategies:
             return Decision.INCONCLUSIVE
         return Decision.BUY if vpt_value > vpt_sma_value else Decision.SELL
 
+    @classmethod
+    def decide_vpt_adx(cls, vpt_value: float, vpt_sma_value: float, adx_value: float) -> Decision:
+        """
+            ADX indicator confirmed by VPT indicator
+                :param vpt_value:
+                :param vpt_sma_value: Simple moving average of the VPT
+                :return: Signal to buy or sell based on VPT and ADX
+                """
+        result_vpt: Decision = cls.decide_vpt(vpt_value=vpt_value, vpt_sma_value=vpt_sma_value)
+
+        if adx_value > 25:
+            return result_vpt
+        return Decision.INCONCLUSIVE
+
     @staticmethod
     def decide_macd(macd_value: float, macd_signal_value: float) -> Decision:
         """
@@ -252,6 +266,108 @@ class TradingStrategies:
         if sentiment_value < 0.5:
             return Decision.SELL
 
+    @staticmethod
+    def decide_dpo(dpo_value: float) -> Decision:
+        """
+        Detrended Price Oscillator https://www.investopedia.com/terms/d/detrended-price-oscillator-dpo.asp
+        :param dpo_value: DPO value
+        :return: Decision based on DPO
+        """
+        if -1 < dpo_value < 1:
+            return Decision.INCONCLUSIVE
+        return Decision.BUY if dpo_value > 0 else Decision.SELL
+
+    @staticmethod
+    def decide_rsi(rsi_value: float) -> Decision:
+        """
+        Relative strength index https://www.investopedia.com/terms/r/rsi.asp
+        :param rsi_value: RSI value
+        :return: Decision to buy or sell based on RSI
+        """
+        if rsi_value >= 70:
+            return Decision.SELL
+        elif rsi_value <= 30:
+            return Decision.BUY
+        return Decision.INCONCLUSIVE
+
+    @staticmethod
+    def decide_stoch_rsi(stoch_rsi_value: float) -> Decision:
+        """
+        Stochastic Relative strength index https://www.investopedia.com/terms/s/stochrsi.asp
+        :param stoch_rsi_value: Stochastic RSI value
+        :return: Decision to buy or sell based on Stochastic RSI
+        """
+        if stoch_rsi_value >= 80:
+            return Decision.SELL
+        elif stoch_rsi_value <= 20:
+            return Decision.BUY
+        return Decision.INCONCLUSIVE
+
+    @staticmethod
+    def decide_tsi(tsi_value: float) -> Decision:
+        """
+        The True Strength Index https://www.investopedia.com/terms/t/tsi.asp
+        :param tsi_value: TSI value
+        :return: Decision to buy or sell based on TSI value
+        """
+        if tsi_value > 0:
+            return Decision.BUY
+        elif tsi_value < 0:
+            return Decision.SELL
+        return Decision.INCONCLUSIVE
+
+    @staticmethod
+    def decide_tsi_signal(tsi_value: float, tsi_ema_12_value: float) -> Decision:
+        """
+        The True Strength Index using EMA-12 as its signal line https://www.investopedia.com/terms/t/tsi.asp
+        :param tsi_value: TSI value
+        :param tsi_ema_12_value: EMA-12 of TSI
+        :return: Decision to buy or sell based on TSI and its EMA-12 value
+        """
+        if tsi_value == tsi_ema_12_value:
+            return Decision.INCONCLUSIVE
+        return Decision.BUY if tsi_value > tsi_ema_12_value else Decision.SELL
+
+    @staticmethod
+    def decide_uo(uo_value: float) -> Decision:
+        """
+        Ultimate Oscillator https://www.investopedia.com/terms/u/ultimateoscillator.asp
+        :param uo_value: UO value
+        :return: Decision to buy or sell based on UO
+        """
+        if uo_value >= 70:
+            return Decision.SELL
+        elif uo_value <= 30:
+            return Decision.BUY
+        return Decision.INCONCLUSIVE
+
+    @staticmethod
+    def decide_so(so_value: float) -> Decision:
+        """
+        Stochastic Oscillator https://www.investopedia.com/terms/s/stochasticoscillator.asp
+        :param so_value: Stochastic Oscillator value
+        :return: Decision to buy or sell based on SO
+        """
+        if so_value >= 80:
+            return Decision.SELL
+        elif so_value <= 20:
+            return Decision.BUY
+        return Decision.INCONCLUSIVE
+
+    @staticmethod
+    def decide_williams(williams_value: float) -> Decision:
+        """
+        Williams %R https://www.investopedia.com/terms/w/williamsr.asp
+        :param williams_value: Williams %R value
+        :return: Decision to buy or sell based on Williams %R
+        """
+        if williams_value >= -20:
+            return Decision.SELL
+        elif williams_value <= -80:
+            return Decision.BUY
+        return Decision.INCONCLUSIVE
+
+
     def perform_decisions_for_row(self, row: np.array, row_np_index: Dict) -> Dict:
         result_obj = {}
         ticker_name = Config.get_value("TRADED_TICKER_NAME")
@@ -266,6 +382,9 @@ class TradingStrategies:
         result_obj['em'] = self.decide_cmf(row[row_np_index['volume_em']])
         result_obj['vpt'] = self.decide_vpt(vpt_value=row[row_np_index['volume_vpt']],
                                             vpt_sma_value=row[row_np_index['volume_vpt_sma']])
+        result_obj['vpt_adx'] = self.decide_vpt_adx(vpt_value=row[row_np_index['volume_vpt']],
+                                                    vpt_sma_value=row[row_np_index['volume_vpt_sma']],
+                                                    adx_value=row[row_np_index['trend_adx']])
         result_obj['macd'] = self.decide_macd(macd_value=row[row_np_index['trend_macd']],
                                               macd_signal_value=row[row_np_index['trend_macd_signal']])
         result_obj['nvi'] = self.decide_nvi(nvi_value=row[row_np_index['volume_nvi']],
@@ -287,5 +406,18 @@ class TradingStrategies:
                                             adx_neg_value=row[row_np_index['trend_adx_neg']])
         result_obj['vi'] = self.decide_vi(vortex_diff_value=row[row_np_index['trend_vortex_ind_diff']])
         result_obj['trix'] = self.decide_trix(trix_value=row[row_np_index['trend_trix']])
-        result_obj['sentiment'] = self.decide_sentiment(sentiment_value=row[row_np_index['sentiment']])
+        result_obj['dpo'] = self.decide_dpo(dpo_value=row[row_np_index['trend_dpo']])
+        result_obj['rsi'] = self.decide_rsi(rsi_value=row[row_np_index['momentum_rsi']])
+        result_obj['stoch_rsi'] = self.decide_stoch_rsi(stoch_rsi_value=row[row_np_index['momentum_stoch_rsi']])
+        result_obj['tsi'] = self.decide_tsi(tsi_value=row[row_np_index['momentum_tsi']])
+        result_obj['uo'] = self.decide_uo(uo_value=row[row_np_index['momentum_uo']])
+        result_obj['so'] = self.decide_so(so_value=row[row_np_index['momentum_stoch']])
+        result_obj['williams'] = self.decide_williams(williams_value=row[row_np_index['momentum_wr']])
+        result_obj['tsi_signal'] = self.decide_tsi_signal(tsi_value=row[row_np_index['momentum_tsi']],
+                                                          tsi_ema_12_value=row[row_np_index['momentum_tsi_ema_12']])
+
+        try:
+            result_obj['sentiment'] = self.decide_sentiment(sentiment_value=row[row_np_index['sentiment']])
+        except (KeyError, IndexError):  # Missing sentiment column
+            result_obj['sentiment'] = Decision.INCONCLUSIVE
         return result_obj

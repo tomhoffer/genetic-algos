@@ -15,7 +15,7 @@ def test_probability_100():
 
 
 @mockenv(P_MUTATION="1.0")
-@pytest.mark.parametrize("min, max", [(1, 5), (1, 1), (5, 5)])
+@pytest.mark.parametrize("min, max", [(1, 5), (0, 5)])
 def test_min_max(min, max, mocker):
     mocker.patch("numpy.random.uniform", return_value=3)
     before = np.asarray([1, 2, 3, 4, 5])

@@ -6,16 +6,11 @@ from src.generic.model import Hyperparams
 
 @dataclass
 class TradingBotHyperparams(Hyperparams):
-    take_profit_ratio: float
-    stop_loss_ratio: float
-    trade_action_confidence: float
+    pass
 
 
 @dataclass
 class TradingBotHyperparamEvaluator(HyperparamEvaluator):
-    take_profit_ratio: List[float]
-    stop_loss_ratio: List[float]
-    trade_action_confidence: List[float]
 
     def get_hyperparam_combinations(self) -> List[TradingBotHyperparams]:
         return [TradingBotHyperparams(mutation_fn=combination['mutation_method'],
@@ -25,8 +20,5 @@ class TradingBotHyperparamEvaluator(HyperparamEvaluator):
                                       fitness_fn=self.fitness_fn, population_size=combination['population_size'],
                                       elitism=combination['elitism_value'],
                                       stopping_criteria_fn=self.stopping_criteria_fn,
-                                      chromosome_validator_fn=self.chromosome_validator_fn,
-                                      stop_loss_ratio=combination['stop_loss_ratio'],
-                                      take_profit_ratio=combination['take_profit_ratio'],
-                                      trade_action_confidence=combination['trade_action_confidence']) for combination in
+                                      chromosome_validator_fn=self.chromosome_validator_fn) for combination in
                 self._get_hyperparam_grid()]

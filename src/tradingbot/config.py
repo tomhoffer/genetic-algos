@@ -16,7 +16,6 @@ class AppConfigError(Exception):
 # AppConfig class with required fields, default values, type checking, and typecasting for int and bool values
 class Config:
     BUDGET: float
-    TRADE_SIZE: float
     START_TIMESTAMP: int
     END_TIMESTAMP: int
     BACKTEST_END_TIMESTAMP: int
@@ -28,9 +27,6 @@ class Config:
     ELITISM = False
     P_MUTATION: float
     TRADED_TICKER_NAME: str
-    STOP_LOSS_PROPORTION: float
-    TAKE_PROFIT_PROPORTION: float
-    TRADE_ACTION_CONFIDENCE: float
 
     """
     Map environment variables to class fields according to these rules:

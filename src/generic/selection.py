@@ -23,11 +23,14 @@ class Selection:
             return copy.deepcopy(population.members)
 
         offspring_population = []
-        members_to_select = len(population.members)
+        members_to_select = len(population.members) # TODO re-use code
         if eval_bool(os.environ.get("ELITISM")) and population.hyperparams.elitism > 0:
             members_to_select = members_to_select - population.hyperparams.elitism
             elites: List[Solution] = _find_best(population, population.hyperparams.elitism)
             offspring_population.extend(elites)
+
+            for el in offspring_population:
+                population.members.remove(el)
 
         for _ in range(members_to_select):
             picked: List[Solution] = random.choices(population.members, k=tournament_size)
@@ -60,6 +63,9 @@ class Selection:
             elites: List[Solution] = _find_best(population, population.hyperparams.elitism)
             offspring_population.extend(elites)
 
+            for el in offspring_population:
+                population.members.remove(el)
+
         try:
             selection_probs = [el.fitness / sum_fitness for el in population.members]
             logging.debug("Roulette weights for population are: %s", selection_probs)
@@ -87,6 +93,9 @@ class Selection:
             members_to_select = members_to_select - population.hyperparams.elitism
             elites: List[Solution] = _find_best(population, population.hyperparams.elitism)
             offspring_population.extend(elites)
+
+            for el in offspring_population:
+                population.members.remove(el)
 
         members_ordered_by_fitness = sorted(population.members, key=lambda el: el.fitness)
         logging.debug("Population members ordered by fitness values: %s", members_ordered_by_fitness)
