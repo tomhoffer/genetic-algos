@@ -83,6 +83,12 @@ class TradingbotSolution(Solution):
         for i in range(len(self.bought_positions)):
             self.sell(datetime=datetime, index=0)
 
+    def sell_position_with_highest_profit(self, datetime: str):
+        if len(self.bought_positions) == 0:
+            return
+        cheapest_buy_position: BuyPosition = min(self.bought_positions, key=lambda x: x.price_at_buy)
+        self.sell(datetime=datetime, index=self.bought_positions.index(cheapest_buy_position))
+
     def parse_chromosome_trade_size(self):
         return self.chromosome[-1]
 
@@ -184,6 +190,7 @@ def fitness(chromosome: np.ndarray, backtesting: bool = False) -> float | Tuple[
         elif decisions_sum < 0:
             # Sell oldest trade
             solution.sell(datetime=row_datetime, index=0)
+            # solution.sell_position_with_highest_profit(datetime=row_datetime)
             result = Decision.SELL
 
         if backtesting:
