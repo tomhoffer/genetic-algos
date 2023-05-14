@@ -21,9 +21,11 @@ class TrainingExecutor:
                                                                 return_global_winner=return_global_winner)
 
     @staticmethod
-    def run_parallel(params: Hyperparams, return_global_winner=False) -> Tuple[Solution, bool, int]:
+    def run_parallel(params: Hyperparams, return_global_winner=False, n_runs=None) -> Tuple[Solution, bool, int]:
         logging.info(f"Running parallel training with parameters: {params}")
-        with Pool(processes=int(os.environ.get("N_PROCESSES"))) as pool:
+        if not n_runs:
+            n_runs = int(os.environ.get("N_PROCESSES"))
+        with Pool(processes=n_runs) as pool:
 
             n_processes = int(os.environ.get("N_PROCESSES"))
             it = pool.imap_unordered(TrainingExecutor.run,
