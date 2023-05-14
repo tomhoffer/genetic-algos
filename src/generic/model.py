@@ -2,6 +2,7 @@ import logging
 import os
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from statistics import mean
 from typing import List, Tuple, Callable, Dict
 import numpy as np
 import wandb
@@ -113,7 +114,8 @@ class Population(PopulationBase):
 
             if eval_bool(os.environ.get("ENABLE_WANDB")):
                 wandb_log = {
-                    "fitness": winner_fitness
+                    "fitness": winner_fitness,
+                    "avg_fitness": self.get_average_fitness()
                 }
                 for j in range(len(winner.chromosome)):
                     wandb_log[str(j)] = winner.chromosome[j]
@@ -178,6 +180,12 @@ class Population(PopulationBase):
                 winner = el
                 max_fitness = el.fitness
         return winner, max_fitness
+
+    def get_average_fitness(self) -> float:
+        """
+        :return: average fitness in the population
+        """
+        return mean([el.fitness for el in self.members])
 
     def is_valid_population(self) -> bool:
         """
