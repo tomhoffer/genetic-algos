@@ -1,4 +1,4 @@
-# Investobot
+# Tradingbot
 
 Tradingbot is an algorithm able to trade a certain asset in real-time.
 The algorithm learns the importance (weights) of individual trading strategies to use in order to make a decision to buy
@@ -6,7 +6,7 @@ or sell.
 
 # Prerequisites
 
-Tradingbot requires offline stock trading data to be downloaded and stored in ./data.csv.
+Tradingbot requires offline stock trading data to be downloaded and stored in `/data`.
 
 # Chromosome structure
 
@@ -26,3 +26,8 @@ Configurable parameters (.env):
   epoch is returned
 
 See `config.py` for data types of parameters mentioned above.
+
+# Run via Docker-compose
+```
+docker-compose up
+```

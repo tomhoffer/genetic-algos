@@ -1,0 +1,13 @@
+services:
+   redis:
+     image: redis:7.0.11-alpine3.18
+     container_name: redis
+     ports:
+       - '6379:6379'
+   tradingbot:
+        build: src/tradingbot
+        container_name: tradingbot
+        volumes:
+            - /Users/tomashoffer/Documents/Coding-Projects/genetic-algos:/src
+        depends_on:
+            - redis

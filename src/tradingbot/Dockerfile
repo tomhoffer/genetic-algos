@@ -1,7 +1,8 @@
 FROM python:3.11.3
-ENV PYTHONUNBUFFERED=1
+
+RUN mkdir /src
 WORKDIR /src
-COPY requirements.txt requirements.txt
+COPY requirements.txt .
 RUN pip install -r requirements.txt --no-cache-dir
 COPY . .
 ENV PYTHONPATH /src
