@@ -2,6 +2,7 @@ import logging
 from dataclasses import dataclass
 from datetime import datetime
 from functools import cache
+from pathlib import Path
 from random import random
 from typing import List, Hashable, Dict, Tuple
 
@@ -105,7 +106,7 @@ class TradingbotSolution(Solution):
 
 @cache
 def load_ticker_data(
-        path: str = f"src/tradingbot/data/data-{Config.get_value('TRADED_TICKER_NAME')}.csv") -> pd.DataFrame:
+        path=Path(__file__).parent / f"./data/data-{Config.get_value('TRADED_TICKER_NAME')}.csv") -> pd.DataFrame:
     return pd.read_csv(path, parse_dates=['Date'], index_col=['Date'])
 
 
