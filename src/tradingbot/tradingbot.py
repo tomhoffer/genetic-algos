@@ -106,8 +106,14 @@ class TradingbotSolution(Solution):
 
 @cache
 def load_ticker_data(
-        path=Path(__file__).parent / f"./data/data-{Config.get_value('TRADED_TICKER_NAME')}.csv") -> pd.DataFrame:
-    return pd.read_csv(path, parse_dates=['Date'], index_col=['Date'])
+        start_date: str = None,
+        end_date: str = None,
+        path=Path(__file__).parent / f"./data/data-{Config.get_value('TRADED_TICKER_NAME')}.csv"
+) -> pd.DataFrame:
+    if start_date and end_date:
+        return pd.read_csv(path, parse_dates=['Date'], index_col=['Date'])[start_date:end_date]
+    else:
+        return pd.read_csv(path, parse_dates=['Date'], index_col=['Date'])
 
 
 def get_trading_strategy_method_names() -> List[str]:
@@ -117,6 +123,7 @@ def get_trading_strategy_method_names() -> List[str]:
     return [method for method in dir(TradingStrategies) if method.startswith('decide')]
 
 
+@cache
 def timestamp_to_str(timestamp: int | pd.Timestamp | Hashable) -> str:
     if isinstance(timestamp, int):
         return datetime.fromtimestamp(timestamp).strftime('%Y-%m-%d')
@@ -151,7 +158,7 @@ def fitness(chromosome: np.ndarray, backtesting: bool = False) -> float | Tuple[
         end_date: str = timestamp_to_str(Config.get_value("END_TIMESTAMP"))
         start_date: str = timestamp_to_str(Config.get_value("START_TIMESTAMP"))
 
-    evaluation_df: pd.DataFrame = load_ticker_data()[start_date:end_date]
+    evaluation_df: pd.DataFrame = load_ticker_data(start_date=start_date, end_date=end_date)
     evaluation_df['datetime'] = evaluation_df.index
     row_np_index = dict(zip(evaluation_df.columns, list(range(0, len(evaluation_df.columns)))))
     evaluation_data: np.ndarray = evaluation_df.to_numpy()
@@ -259,7 +266,7 @@ def backtest(winner: Solution):
     fig, ax = plt.subplots()
     end_date: str = timestamp_to_str(Config.get_value("BACKTEST_END_TIMESTAMP"))
     start_date: str = timestamp_to_str(Config.get_value("BACKTEST_START_TIMESTAMP"))
-    ticker_df: pd.DataFrame = load_ticker_data()[start_date:end_date]
+    ticker_df: pd.DataFrame = load_ticker_data(start_date=start_date, end_date=end_date)
     ax.plot(ticker_df.index, ticker_df[f"{Config.get_value('TRADED_TICKER_NAME')}_Adj Close"])
 
     buys = [(datetime.strptime(log['datetime'], '%Y-%m-%d'), log['price']) for log in transaction_log if
