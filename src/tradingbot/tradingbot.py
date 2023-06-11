@@ -141,10 +141,10 @@ def initial_population_generator() -> List[TradingbotSolution]:
     for i in range(Config.get_value('POPULATION_SIZE')):
         strategy_weights: np.ndarray = rng.random(num_of_strategies)
         take_profit_ratio: float = rng.uniform(low=1, high=2)
-        stop_loss_ratio: float = rng.uniform(low=0, high=1)
+        stop_loss_ratio: float = rng.uniform(low=0, high=0.99)
         trade_size: float = rng.uniform(low=10, high=100)
         chromosome: np.ndarray = np.append(strategy_weights, [take_profit_ratio, stop_loss_ratio, trade_size])
-        result.append(TradingbotSolution(chromosome))
+        result.append(TradingbotSolution(np.around(chromosome, decimals=2)))
         logging.debug("Generated random individual with chromosome %s", chromosome)
     return result
 
@@ -228,12 +228,12 @@ def chromosome_validator_fn(solution: TradingbotSolution) -> bool:
     stop_loss_ratio: float = solution.parse_chromosome_stop_loss()
     trade_size: float = solution.parse_chromosome_trade_size()
     return np.all((strategy_weights >= 0) & (strategy_weights <= 1)) and \
-        (1 <= take_profit_ratio < 2) and \
+        (1 <= take_profit_ratio <= 2) and \
         (0 <= stop_loss_ratio < 1) and (0 < trade_size)
 
 
 def mutate_gaussian(chromosome: np.ndarray) -> np.ndarray:
-    return Mutation.mutate_real_gaussian(chromosome, use_abs=True, max=1.0, min=0)  # TODO adjust
+    return np.around(Mutation.mutate_real_gaussian(chromosome, use_abs=True, max=1.0, min=0), decimals=2)  # TODO adjust
 
 
 def mutate_uniform(chromosome: np.ndarray) -> np.ndarray:
@@ -256,7 +256,7 @@ def mutate_uniform(chromosome: np.ndarray) -> np.ndarray:
         mutated_trade_size: np.ndarray = Mutation.mutate_real_uniform(np.asarray([trade_size]), use_abs=True, max=100,
                                                                       min=1)
         result = np.concatenate((mutated_weights, mutated_take_profit, mutated_stop_loss, mutated_trade_size))
-    return result
+    return np.around(result, decimals=2)
 
 
 def backtest(winner: Solution):
