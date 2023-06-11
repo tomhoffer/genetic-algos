@@ -24,6 +24,7 @@ from src.tradingbot.exceptions import InvalidTradeActionException
 from src.tradingbot.hyperparams import TradingBotHyperparamEvaluator, TradingBotHyperparams
 
 pd.options.mode.chained_assignment = None  # Disable SettingWithCopyWarning
+backtesting = False
 logging.basicConfig(level=logging.INFO)
 load_dotenv()
 
@@ -149,7 +150,7 @@ def initial_population_generator() -> List[TradingbotSolution]:
 
 
 @np_cache
-def fitness(chromosome: np.ndarray, backtesting: bool = False) -> float | Tuple[float, List]:
+def fitness(chromosome: np.ndarray) -> float | Tuple[float, List]:
     transaction_log: List[Dict] = []
     if backtesting:
         end_date: str = timestamp_to_str(Config.get_value("BACKTEST_END_TIMESTAMP"))
@@ -260,7 +261,9 @@ def mutate_uniform(chromosome: np.ndarray) -> np.ndarray:
 
 def backtest(winner: Solution):
     print("Starting backtest...")
-    winner_fitness, transaction_log = fitness(winner.chromosome, backtesting=True)
+    global backtesting
+    backtesting = True
+    winner_fitness, transaction_log = fitness(winner.chromosome)
     print(f"Resulting account balance over backtesting period: {winner_fitness}")
 
     fig, ax = plt.subplots()
@@ -278,6 +281,7 @@ def backtest(winner: Solution):
         plt.scatter(x=buy[0], y=buy[1], color='g')
         plt.scatter(x=sell[0], y=sell[1], color='r')
     plt.show()
+    backtesting = False
 
 
 if __name__ == "__main__":
