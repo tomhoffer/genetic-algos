@@ -1,3 +1,8 @@
+from hashlib import sha1
+
+import numpy as np
+
+
 def eval_bool(value: str) -> bool:
     """
     Function used to parse boolean values in env variables
@@ -12,3 +17,7 @@ def eval_bool(value: str) -> bool:
     except AttributeError:
         # Empty variable
         return False
+
+
+def hash_chromosome(chromosome: np.ndarray) -> str:
+    return sha1(chromosome).hexdigest()

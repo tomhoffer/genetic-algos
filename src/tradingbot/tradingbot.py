@@ -1,7 +1,8 @@
 import logging
+import sys
 from dataclasses import dataclass
 from datetime import datetime
-from functools import cache
+from functools import cache, lru_cache
 from pathlib import Path
 from random import random
 from typing import List, Hashable, Dict, Tuple
@@ -19,7 +20,7 @@ from src.generic.selection import Selection
 
 from src.tradingbot.config import Config
 from src.tradingbot.decisions import TradingStrategies, Decision
-from src.tradingbot.decorators import np_cache
+from src.tradingbot.decorators import np_cache, redis_cache
 from src.tradingbot.exceptions import InvalidTradeActionException
 from src.tradingbot.hyperparams import TradingBotHyperparamEvaluator, TradingBotHyperparams
 
@@ -105,11 +106,11 @@ class TradingbotSolution(Solution):
         return self.chromosome[:-3]
 
 
-@cache
+@lru_cache(maxsize=0 if "pytest" in sys.modules else 100)
 def load_ticker_data(
+        path=Path(__file__).parent / f"./data/data-{Config.get_value('TRADED_TICKER_NAME')}.csv",
         start_date: str = None,
         end_date: str = None,
-        path=Path(__file__).parent / f"./data/data-{Config.get_value('TRADED_TICKER_NAME')}.csv"
 ) -> pd.DataFrame:
     if start_date and end_date:
         return pd.read_csv(path, parse_dates=['Date'], index_col=['Date'])[start_date:end_date]

@@ -8,7 +8,10 @@ import numpy as np
 import wandb
 from tqdm import tqdm
 
-from src.generic.helpers import eval_bool
+from src import redis_connector
+from src.generic.helpers import eval_bool, hash_chromosome
+
+redis_conn = redis_connector.connect()
 
 
 class InvalidPopulationException(Exception):
@@ -147,8 +150,20 @@ class Population(PopulationBase):
             raise InvalidPopulationException
 
     def refresh_fitness(self):
-        for individual in self.members:
-            individual.fitness = self.hyperparams.fitness_fn(individual.chromosome)
+        if eval_bool(os.environ.get('USE_REDIS_FITNESS_CACHE')):
+            chromosomes_hashed: List[str] = [hash_chromosome(member.chromosome) for member in self.members]
+            cached_results = redis_conn.mget(chromosomes_hashed)
+
+            for individual, cached_result in zip(self.members, cached_results):
+                if cached_result is None:
+                    individual.fitness = self.hyperparams.fitness_fn(individual.chromosome)
+                    redis_conn.set(hash_chromosome(individual.chromosome), str(individual.fitness))
+                else:
+                    individual.fitness = float(cached_result)
+
+        else:
+            for individual in self.members:
+                individual.fitness = self.hyperparams.fitness_fn(individual.chromosome)
 
     def perform_mutation(self):
         for individual in self.members:
