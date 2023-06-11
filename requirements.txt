@@ -49,4 +49,4 @@ toml==0.10.2
 tqdm==4.65.0
 tzdata==2023.3
 urllib3==1.26.12
-wandb==0.15.1
+wandb==0.15.4

@@ -68,5 +68,5 @@ tqdm==4.65.0
 traitlets==5.9.0
 tzdata==2023.3
 urllib3==1.26.12
-wandb==0.15.1
+wandb==0.15.4
 wcwidth==0.2.6
