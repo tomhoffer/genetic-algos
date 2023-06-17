@@ -23,14 +23,14 @@ class TrainingExecutor:
     @staticmethod
     def run_parallel(params: Hyperparams, return_global_winner=False, n_runs=None) -> Tuple[Solution, bool, int]:
         logging.info(f"Running parallel training with parameters: {params}")
+        n_processes = int(os.environ.get("N_PROCESSES"))
         if not n_runs:
             n_runs = int(os.environ.get("N_PROCESSES"))
-        with Pool(processes=n_runs) as pool:
+        with Pool(processes=n_processes) as pool:
 
-            n_processes = int(os.environ.get("N_PROCESSES"))
             it = pool.imap_unordered(TrainingExecutor.run,
-                                     zip([params for _ in range(n_processes)],
-                                         range(n_processes), [return_global_winner for _ in range(n_processes)]))
+                                     zip([params for _ in range(n_runs)],
+                                         range(n_runs), [return_global_winner for _ in range(n_runs)]))
 
             winner = Solution(chromosome=np.asarray([]), fitness=0)
             winner_process_id: int = 0
