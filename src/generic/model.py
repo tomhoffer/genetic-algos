@@ -45,6 +45,9 @@ class Solution:
     def __eq__(self, other):
         return np.array_equal(self.chromosome, other.chromosome)
 
+    def serialize_to_file(self, path: str):
+        np.save(path, self.chromosome)
+
 
 class PopulationBase(ABC):
 

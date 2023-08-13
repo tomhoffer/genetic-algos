@@ -284,6 +284,7 @@ def mutate_uniform(chromosome: np.ndarray) -> np.ndarray:
     return np.around(result, decimals=2)
 
 
+
 if __name__ == "__main__":
 
     params = TradingBotHyperparams(crossover_fn=Crossover.two_point,
@@ -310,6 +311,8 @@ if __name__ == "__main__":
     print(
         f"Found winner with weights {[el for el in zip(get_trading_strategy_method_names(), backtest_winner.chromosome)]} and resulting account balance {backtest_fitness}")
     backtest(backtest_winner, plot=True)
+    backtest_winner.serialize_to_file('storage/best.npy')
+
     """
     # selection_methods = [Selection.tournament, Selection.roulette, Selection.rank]
     selection_methods = [Selection.tournament]
