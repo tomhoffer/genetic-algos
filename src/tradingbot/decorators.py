@@ -1,10 +1,9 @@
 import sys
 from functools import lru_cache, wraps
-from hashlib import sha1
 from typing import Callable
 import numpy as np
 
-from src import redis_connector
+from src.tradingbot import redis_connector
 from src.generic.helpers import hash_chromosome
 
 redis_conn = redis_connector.connect()

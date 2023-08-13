@@ -24,10 +24,23 @@ Configurable parameters (.env):
 - TRADED_TICKER_NAME: Name of the traded ticker (used to read training data at `data/data-$TRADED_TICKER_NAME.csv`)
 - RETURN_GLOBAL_WINNER: If True, best individual from all epochs is returned. If False, best individual from the last
   epoch is returned
+- USE_REDIS_FITNESS_CACHE: Use Redis to cache results of the fitness function
 
 See `config.py` for data types of parameters mentioned above.
+
+
+# Run via make
+```
+make run-tradingbot
+```
 
 # Run via Docker-compose
 ```
 docker-compose up
+```
+
+# Connect to Redis instance
+Redis instance contains cached fitness function results if `USE_REDIS_FITNESS_CACHE=True`
+```
+docker exec -it redis redis-cli
 ```
