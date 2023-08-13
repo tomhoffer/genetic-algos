@@ -3,12 +3,12 @@ import os
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from statistics import mean
-from typing import List, Tuple, Callable, Dict
+from typing import List, Tuple, Callable
 import numpy as np
 import wandb
 from tqdm import tqdm
 
-from src import redis_connector
+from src.tradingbot import redis_connector
 from src.generic.helpers import eval_bool, hash_chromosome
 
 redis_conn = redis_connector.connect()
