@@ -10,7 +10,7 @@ from src.generic.decorators import validate_chromosome_type
 class Mutation:
 
     @staticmethod
-    # @validate_chromosome_type(type=np.ndarray)
+    @validate_chromosome_type(type=np.ndarray)
     def flip_bit(sequence: np.ndarray) -> np.ndarray:
         result = np.asarray(sequence)
         probability = float(os.environ.get("P_MUTATION", default=0.01))
@@ -24,7 +24,7 @@ class Mutation:
         return result
 
     @staticmethod
-    # @validate_chromosome_type(type=np.ndarray)
+    @validate_chromosome_type(type=np.ndarray)
     def swap(sequence: np.ndarray) -> np.ndarray:
         result = sequence.copy()
         probability = float(os.environ.get("P_MUTATION", default=0.01))
@@ -40,7 +40,7 @@ class Mutation:
         return result
 
     @staticmethod
-    # @validate_chromosome_type(type=np.ndarray)
+    @validate_chromosome_type(type=np.ndarray)
     def mutate_real_uniform(sequence: np.ndarray, min: float, max: float, use_abs=True) -> np.ndarray:
         """
         Suitable for real numbers
@@ -68,7 +68,7 @@ class Mutation:
         return result
 
     @staticmethod
-    # @validate_chromosome_type(type=np.ndarray)  # TODO implement maximum (return max if number is > max)
+    @validate_chromosome_type(type=np.ndarray)  # TODO implement maximum (return max if number is > max)
     def mutate_real_gaussian(sequence: np.ndarray, use_abs=True, max: float = None, min: float = None) -> np.ndarray:
         """
         Suitable for real numbers

@@ -1,4 +1,5 @@
 venv
-*/wandb
-.ipynb_checkpoints
-.pytest_cache
+**/wandb/
+wandb
+**/.ipynb_checkpoints
+**/.pytest_cache

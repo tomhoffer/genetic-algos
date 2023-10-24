@@ -8,6 +8,7 @@ import numpy as np
 import wandb
 from tqdm import tqdm
 
+from src.generic.config import Config
 from src.tradingbot import redis_connector
 from src.generic.helpers import eval_bool, hash_chromosome
 
@@ -153,7 +154,7 @@ class Population(PopulationBase):
             raise InvalidPopulationException
 
     def refresh_fitness(self):
-        if eval_bool(os.environ.get('USE_REDIS_FITNESS_CACHE')):
+        if Config.get_value('USE_REDIS_FITNESS_CACHE'):
             chromosomes_hashed: List[str] = [hash_chromosome(member.chromosome) for member in self.members]
             cached_results = redis_conn.mget(chromosomes_hashed)
 

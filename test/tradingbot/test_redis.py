@@ -1,5 +1,5 @@
 from src.tradingbot.decorators import redis_cache
-from src.redis_connector import connect
+from src.tradingbot.redis_connector import connect
 
 
 @redis_cache

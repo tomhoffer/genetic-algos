@@ -60,7 +60,7 @@ def test_generate_initial_population_invalid(empty_population, mocker):
     assert mocked_refresh_fitness.call_count == 0
 
 
-@mockenv(MAX_ITERS="3", ENABLE_WANDB="True", STR_LEN="3")
+@mockenv(MAX_ITERS="3", ENABLE_WANDB="True", STR_LEN="3", USE_REDIS_FITNESS_CACHE="false")
 def test_train_not_successful(configurable_population, mocker):
     # Test solution not being found within max iterations
     population = configurable_population(elitism=0, stopping_criteria_fn=_stopping_criteria_fn)
@@ -91,7 +91,7 @@ def test_train_not_successful(configurable_population, mocker):
     assert process_id == id
 
 
-@mockenv(MAX_ITERS="3", ENABLE_WANDB="True", STR_LEN="3")
+@mockenv(MAX_ITERS="3", ENABLE_WANDB="True", STR_LEN="3", USE_REDIS_FITNESS_CACHE="false")
 def test_train_successful(configurable_population, mocker):
     # Test solution being found after first iteration
     population = configurable_population(elitism=0, stopping_criteria_fn=_stopping_criteria_fn)
