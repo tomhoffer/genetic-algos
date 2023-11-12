@@ -3,7 +3,7 @@ import os
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from statistics import mean
-from typing import List, Tuple, Callable
+from typing import List, Tuple
 import numpy as np
 import wandb
 from tqdm import tqdm
@@ -11,6 +11,7 @@ from tqdm import tqdm
 from src.generic.config import Config
 from src.tradingbot import redis_connector
 from src.generic.helpers import eval_bool, hash_chromosome
+import src.generic.types as types
 
 redis_conn = redis_connector.connect()
 
@@ -21,13 +22,13 @@ class InvalidPopulationException(Exception):
 
 @dataclass
 class Hyperparams:
-    fitness_fn: Callable
-    initial_population_generator_fn: Callable
-    mutation_fn: Callable
-    selection_fn: Callable
-    crossover_fn: Callable
-    stopping_criteria_fn: Callable
-    chromosome_validator_fn: Callable
+    fitness_fn: types.FitnessMethodSignature
+    initial_population_generator_fn: types.PopulationGeneratorMethodSignature
+    mutation_fn: types.MutationMethodSignature
+    selection_fn: types.SelectionMethodSignature
+    crossover_fn: types.CrossoverMethodSignature
+    stopping_criteria_fn: types.StoppingCriteriaMethodSignature
+    chromosome_validator_fn: types.ChromosomeValidatorMethodSignature
     population_size: int
     elitism: int
 

@@ -1,23 +1,24 @@
 import os
 from dataclasses import dataclass
 from multiprocessing import Pool
-from typing import List, Callable, Dict
+from typing import List, Callable, Dict, Optional, Tuple
 from src.generic.executor import TrainingExecutor
 from src.generic.model import Hyperparams
 from sklearn.model_selection import ParameterGrid
-
+from numpy import ndarray
+import src.generic.types as types
 
 @dataclass
 class HyperparamEvaluator:
-    selection_method: List[Callable]
-    crossover_method: List[Callable]
-    mutation_method: List[Callable]
+    selection_method: List[types.SelectionMethodSignature]
+    crossover_method: List[types.CrossoverMethodSignature]
+    mutation_method: List[types.MutationMethodSignature]
     population_size: List[int]
-    initial_population_generation_fn: Callable
-    fitness_fn: Callable
+    initial_population_generation_fn: types.PopulationGeneratorMethodSignature
+    fitness_fn: types.FitnessMethodSignature
     elitism_value: List[int]
-    stopping_criteria_fn: Callable
-    chromosome_validator_fn: Callable
+    stopping_criteria_fn: types.StoppingCriteriaMethodSignature
+    chromosome_validator_fn: types.ChromosomeValidatorMethodSignature
 
     def _get_hyperparam_grid(self) -> List[Dict]:
         params = self.__dict__.keys()
