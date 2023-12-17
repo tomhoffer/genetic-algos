@@ -1,3 +1,5 @@
+from typing import List
+
 from src.generic.model import Solution, Population
 
 
@@ -20,9 +22,9 @@ def validate_population_length(func):
     Decorator to validate that population is not empty
     """
 
-    def wrapper(population: Population, *args, **kwargs):
-        if len(population.members) < 1:
-            raise ValueError(f"Population size lower than 1! Actual: {len(population.members)}")
+    def wrapper(population: List[Solution], *args, **kwargs):
+        if len(population) < 1:
+            raise ValueError(f"Population size lower than 1! Actual: {len(population)}")
 
         return func(population, *args, **kwargs)
 

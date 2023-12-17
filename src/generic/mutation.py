@@ -1,8 +1,10 @@
 import logging
 import os
 import random
+from typing import Type, Callable
 
 import numpy as np
+from numpy import ndarray
 
 from src.generic.decorators import validate_chromosome_type
 

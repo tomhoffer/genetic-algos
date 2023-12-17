@@ -1,24 +1,26 @@
 import os
 from dataclasses import dataclass
 from multiprocessing import Pool
-from typing import List, Callable, Dict, Optional, Tuple
-from src.generic.executor import TrainingExecutor
-from src.generic.model import Hyperparams
-from sklearn.model_selection import ParameterGrid
+from typing import List, Dict, Type, Callable, Optional, Tuple
+
 from numpy import ndarray
-import src.generic.types as types
+
+from src.generic.executor import TrainingExecutor
+from src.generic.model import Hyperparams, Solution
+from sklearn.model_selection import ParameterGrid
+
 
 @dataclass
 class HyperparamEvaluator:
-    selection_method: List[types.SelectionMethodSignature]
-    crossover_method: List[types.CrossoverMethodSignature]
-    mutation_method: List[types.MutationMethodSignature]
+    selection_method: List[Type[Callable[[List[Solution]], List[Solution]]]]
+    crossover_method: List[Type[Callable[[Solution, Solution], Optional[Tuple[Solution, Solution]]]]]
+    mutation_method: List[Type[Callable[[ndarray], ndarray]]]
     population_size: List[int]
-    initial_population_generation_fn: types.PopulationGeneratorMethodSignature
-    fitness_fn: types.FitnessMethodSignature
+    initial_population_generation_fn: Type[Callable[[], List[Solution]]]
+    fitness_fn: Type[Callable[[ndarray], float]]
     elitism_value: List[int]
-    stopping_criteria_fn: types.StoppingCriteriaMethodSignature
-    chromosome_validator_fn: types.ChromosomeValidatorMethodSignature
+    stopping_criteria_fn: Type[Callable[[Solution], bool]]
+    chromosome_validator_fn: Type[Callable[[Solution], bool]]
 
     def _get_hyperparam_grid(self) -> List[Dict]:
         params = self.__dict__.keys()

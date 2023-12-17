@@ -3,40 +3,21 @@ import os
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from statistics import mean
-from typing import List, Tuple
+from typing import List, Tuple, Type, Callable, Optional
 import numpy as np
 import wandb
+from numpy import ndarray
 from tqdm import tqdm
 
 from src.generic.config import Config
 from src.tradingbot import redis_connector
 from src.generic.helpers import eval_bool, hash_chromosome
-import src.generic.types as types
 
 redis_conn = redis_connector.connect()
 
 
 class InvalidPopulationException(Exception):
     pass
-
-
-@dataclass
-class Hyperparams:
-    fitness_fn: types.FitnessMethodSignature
-    initial_population_generator_fn: types.PopulationGeneratorMethodSignature
-    mutation_fn: types.MutationMethodSignature
-    selection_fn: types.SelectionMethodSignature
-    crossover_fn: types.CrossoverMethodSignature
-    stopping_criteria_fn: types.StoppingCriteriaMethodSignature
-    chromosome_validator_fn: types.ChromosomeValidatorMethodSignature
-    population_size: int
-    elitism: int
-
-    def get_wandb_config(self):
-        config = {}
-        for key, val in zip(self.__dict__.keys(), self.__dict__.values()):
-            config[key] = val
-        return config
 
 
 @dataclass
@@ -80,6 +61,25 @@ class PopulationBase(ABC):
     @abstractmethod
     def get_winner(self):
         pass
+
+
+@dataclass
+class Hyperparams:
+    fitness_fn: Type[Callable[[ndarray], float]]
+    initial_population_generator_fn: Type[Callable[[], List[Solution]]]
+    mutation_fn: Type[Callable[[ndarray], ndarray]]
+    selection_fn: Type[Callable[[List[Solution]], List[Solution]]]
+    crossover_fn: Type[Callable[[Solution, Solution], Optional[Tuple[Solution, Solution]]]]
+    stopping_criteria_fn: Type[Callable[[Solution], bool]]
+    chromosome_validator_fn: Type[Callable[[Solution], bool]]
+    population_size: int
+    elitism: int
+
+    def get_wandb_config(self):
+        config = {}
+        for key, val in zip(self.__dict__.keys(), self.__dict__.values()):
+            config[key] = val
+        return config
 
 
 @dataclass
@@ -175,7 +175,7 @@ class Population(PopulationBase):
             individual.chromosome = self.hyperparams.mutation_fn(individual.chromosome)
 
     def perform_selection(self):
-        self.members = self.hyperparams.selection_fn(self)
+        self.members = self.hyperparams.selection_fn(self.members)
 
     def perform_crossover(self):
         middle_point = len(self.members) // 2
