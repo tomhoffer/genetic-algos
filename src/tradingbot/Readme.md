@@ -54,7 +54,7 @@ In this example, we are going to demonstrate the ability of the algorithm to tra
 1.1.2022 and 30.12.2022.
 
 The following graph plots AAPL stock price during this period. We can see there is an overall downtrend and the period
-contains multiple dips and rips.
+contains multiple short-term uptrends and downtrends.
 This period has been chosen as a backtesting period to demonstrate the algorithm's ability to learn to predict the
 short-term stock trends and achieve profit even in this downtrend period.
 
