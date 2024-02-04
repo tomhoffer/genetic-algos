@@ -28,19 +28,45 @@ Configurable parameters (.env):
 
 See `config.py` for data types of parameters mentioned above.
 
-
 # Run via make
+
 ```
 make run-tradingbot
 ```
 
 # Run via Docker-compose
+
 ```
 docker-compose up
 ```
 
 # Connect to Redis instance
+
 Redis instance contains cached fitness function results if `USE_REDIS_FITNESS_CACHE=True`
+
 ```
 docker exec -it redis redis-cli
 ```
+
+# Example output
+
+In this example, we are going to demonstrate the ability of the algorithm to trade AAPL stock between periods of
+1.1.2022 and 30.12.2022.
+
+The following graph plots AAPL stock price during this period. We can see there is an overall downtrend and the period
+contains multiple dips and rips.
+This period has been chosen as a backtesting period to demonstrate the algorithm's ability to learn to predict the
+short-term stock trends and achieve profit even in this downtrend period.
+
+![AAPL stock 1.1.2022 - 30.12.2022](./docs/aapl.png)
+
+The algorithm received a trading budget of 1000USD and achieved 18.4% profit. The following trading strategy weights
+have been learned by the algorithm:
+
+```
+Found winner with weights [('decide_adi', 0.5), ('decide_adx', 0.06), ('decide_cmf', 0.55), ('decide_death_cross', 0.79), ('decide_dpo', 0.14), ('decide_em', 0.7), ('decide_ema_20_vs_50', 0.99), ('decide_golden_cross', 0.52), ('decide_macd', 0.12), ('decide_mfi', 0.22), ('decide_nvi', 0.43), ('decide_rsi', 0.8), ('decide_sentiment', 0.36), ('decide_sma_fast', 0.42), ('decide_sma_slow', 0.12), ('decide_so', 0.88), ('decide_stoch_rsi', 0.07), ('decide_trix', 0.55), ('decide_tsi', 0.65), ('decide_tsi_signal', 0.51), ('decide_uo', 0.06), ('decide_vi', 0.01), ('decide_vpt', 0.79), ('decide_vpt_adx', 0.93), ('decide_vwap', 0.09), ('decide_williams', 0.02)]
+```
+
+The following chart plots the stock price during the backtesting period. Green dots mark BUY positions made by the algorithm and red dots mark SELL positions (size of the dots does not reflect the size of BUY/SELL positions).
+
+![BUY(green) and SELL(red) positions made by the algorithm](./docs/backtest.png)
