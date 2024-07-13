@@ -11,7 +11,7 @@ from src.tradingbot.tradingbot import TradingbotSolution, initial_population_gen
 
 @pytest.fixture
 def trading_df() -> np.array:
-    return TradingdataRepository().load_ticker_data(path='test/tradingbot/test_data.csv')
+    return TradingdataRepository().load_ticker_data(path='src/tradingbot/test/test_data.csv')
 
 
 @mockenv(POPULATION_SIZE="10")

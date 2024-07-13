@@ -12,11 +12,21 @@ services:
       - /Users/tomashoffer/Documents/Coding-Projects/genetic-algos:/src
     depends_on:
       - redis
-  test:
+      - postgres-dev
+
+  test-generic:
     build:
       dockerfile: Dockerfile-test
-    container_name: test
+    container_name: test-generic
+    volumes:
+      - /Users/tomashoffer/Documents/Coding-Projects/genetic-algos:/src
+
+  test-tradingbot:
+    build:
+      dockerfile: src/tradingbot/Dockerfile-test
+    container_name: test-tradingbot
     volumes:
       - /Users/tomashoffer/Documents/Coding-Projects/genetic-algos:/src
     depends_on:
       - redis
+      - postgres-dev
