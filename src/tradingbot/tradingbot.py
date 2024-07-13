@@ -1,17 +1,14 @@
 import logging
-import sys
 from dataclasses import dataclass
 from datetime import datetime
-from functools import cache, lru_cache
-from pathlib import Path
+from functools import cache
 from random import random
-from typing import List, Hashable, Dict, Tuple
+from typing import List, Hashable, Dict
 
 import numpy as np
 import pandas as pd
 from dotenv import load_dotenv
 import matplotlib.pyplot as plt
-from tqdm import tqdm
 
 from src.generic.crossover import Crossover
 from src.generic.executor import TrainingExecutor
@@ -22,10 +19,12 @@ from src.generic.selection import Selection
 from src.tradingbot.config import Config
 from src.tradingbot.decisions import TradingStrategies, Decision
 from src.tradingbot.exceptions import InvalidTradeActionException
-from src.tradingbot.hyperparams import TradingBotHyperparamEvaluator, TradingBotHyperparams
+from src.tradingbot.hyperparams import TradingBotHyperparams
+from src.tradingbot.repository import TradingdataRepository
 
 pd.options.mode.chained_assignment = None  # Disable SettingWithCopyWarning
 backtesting = False
+trading_data_repository = TradingdataRepository()
 transaction_log: List[Dict] = []
 logging.basicConfig(level=logging.INFO)
 load_dotenv()
@@ -76,7 +75,7 @@ class TradingbotSolution(Solution):
         except IndexError:
             raise InvalidTradeActionException(message=f"Attempting to sell a position on invalid index: {index}")
 
-        df: pd.DataFrame = load_ticker_data()
+        df: pd.DataFrame = trading_data_repository.load_ticker_data()
         ticker_value_at_sell: float = df.at[datetime, f"{Config.get_value('TRADED_TICKER_NAME')}_Adj Close"]
         profit: float = (ticker_value_at_sell / sold_position.price_at_buy * sold_position.amount)
         self.account_balance += profit
@@ -105,18 +104,6 @@ class TradingbotSolution(Solution):
 
     def parse_strategy_weights(self):
         return self.chromosome[:-3]
-
-
-@lru_cache(maxsize=0 if "pytest" in sys.modules else 100)
-def load_ticker_data(
-        path=Path(__file__).parent / f"./data/data-{Config.get_value('TRADED_TICKER_NAME')}.csv",
-        start_date: str = None,
-        end_date: str = None,
-) -> pd.DataFrame:
-    if start_date and end_date:
-        return pd.read_csv(path, parse_dates=['Date'], index_col=['Date'])[start_date:end_date]
-    else:
-        return pd.read_csv(path, parse_dates=['Date'], index_col=['Date'])
 
 
 def get_trading_strategy_method_names() -> List[str]:
@@ -194,7 +181,7 @@ def decide_row(row: np.array, row_np_index: Dict, solution: TradingbotSolution):
 
 
 def perform_fitness(start_date: str, end_date: str, chromosome: np.ndarray) -> float:
-    evaluation_df: pd.DataFrame = load_ticker_data(start_date=start_date, end_date=end_date)
+    evaluation_df: pd.DataFrame = trading_data_repository.load_ticker_data(start_date=start_date, end_date=end_date)
     evaluation_df['datetime'] = evaluation_df.index
     row_np_index = dict(zip(evaluation_df.columns, list(range(0, len(evaluation_df.columns)))))
     evaluation_data: np.ndarray = evaluation_df.to_numpy()
@@ -225,7 +212,7 @@ def backtest(winner: Solution, plot=False) -> float:
     print(f"Resulting account balance over backtesting period: {winner_fitness}")
     if plot:
         fig, ax = plt.subplots()
-        ticker_df: pd.DataFrame = load_ticker_data(start_date=start_date, end_date=end_date)
+        ticker_df: pd.DataFrame = trading_data_repository.load_ticker_data(start_date=start_date, end_date=end_date)
         ax.plot(ticker_df.index, ticker_df[f"{Config.get_value('TRADED_TICKER_NAME')}_Adj Close"])
 
         buys = [(datetime.strptime(log['datetime'], '%Y-%m-%d'), log['price']) for log in transaction_log if
@@ -238,6 +225,7 @@ def backtest(winner: Solution, plot=False) -> float:
             plt.scatter(x=sell[0], y=sell[1], color='r')
         plt.title(f"Resulting balance: {winner_fitness}")
         plt.show()
+        plt.savefig("backtest.png")
     backtesting = False
     return winner_fitness
 
@@ -284,7 +272,6 @@ def mutate_uniform(chromosome: np.ndarray) -> np.ndarray:
     return np.around(result, decimals=2)
 
 
-
 if __name__ == "__main__":
 
     params = TradingBotHyperparams(crossover_fn=Crossover.two_point,
@@ -298,7 +285,7 @@ if __name__ == "__main__":
     print(
         f"Training on period: {timestamp_to_str(Config.get_value('START_TIMESTAMP'))} - {timestamp_to_str(Config.get_value('END_TIMESTAMP'))}")
 
-    winners, _, _ = TrainingExecutor.run_parallel(params, return_global_winner=True, return_all_winners=True, n_runs=2)
+    winners, _, _ = TrainingExecutor.run_parallel(params, return_global_winner=True, return_all_winners=True, n_runs=40)
 
     backtest_winner: Solution = Solution(chromosome=np.empty(0))
     backtest_winner.fitness = -np.inf
@@ -312,6 +299,8 @@ if __name__ == "__main__":
         f"Found winner with weights {[el for el in zip(get_trading_strategy_method_names(), backtest_winner.chromosome)]} and resulting account balance {backtest_fitness}")
     backtest(backtest_winner, plot=True)
     backtest_winner.serialize_to_file('storage/best.npy')
+
+    # winners, _, _ = TrainingExecutor.run((params, 1), return_global_winner=True)
 
     """
     # selection_methods = [Selection.tournament, Selection.roulette, Selection.rank]

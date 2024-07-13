@@ -4,8 +4,14 @@ import pytest
 from conftest import mockenv
 from src.tradingbot.decisions import Decision
 from src.tradingbot.exceptions import InvalidTradeActionException
-from src.tradingbot.tradingbot import TradingbotSolution, initial_population_generator, BuyPosition, load_ticker_data, \
-    fitness, chromosome_validator_fn
+from src.tradingbot.repository import TradingdataRepository
+from src.tradingbot.tradingbot import TradingbotSolution, initial_population_generator, BuyPosition, fitness, \
+    chromosome_validator_fn
+
+
+@pytest.fixture
+def trading_df() -> np.array:
+    return TradingdataRepository().load_ticker_data(path='test/tradingbot/test_data.csv')
 
 
 @mockenv(POPULATION_SIZE="10")
@@ -25,9 +31,8 @@ def test_tradingbotsolution_sell_all(mocker):
     assert mocked_sell.call_count == 10
 
 
-def test_tradingbotsolution_sell_all_bought_positions(mocker):
-    df = load_ticker_data('test/tradingbot/test_data.csv')
-    mocker.patch('src.tradingbot.tradingbot.load_ticker_data', return_value=df)
+def test_tradingbotsolution_sell_all_bought_positions(mocker, trading_df):
+    mocker.patch('src.tradingbot.repository.TradingdataRepository.load_ticker_data', return_value=trading_df)
     s = TradingbotSolution(chromosome=np.asarray([]))
     s.bought_positions = [BuyPosition(datetime='1970-01-01', amount=1, price_at_buy=1) for _ in range(10)]
     s.sell_all(datetime='1970-01-01')
@@ -35,9 +40,8 @@ def test_tradingbotsolution_sell_all_bought_positions(mocker):
 
 
 @mockenv(TRADED_TICKER_NAME="AAPL")
-def test_tradingbotsolution_sell(mocker):
-    df = load_ticker_data('test/tradingbot/test_data.csv')
-    mocker.patch('src.tradingbot.tradingbot.load_ticker_data', return_value=df)
+def test_tradingbotsolution_sell(mocker, trading_df):
+    mocker.patch('src.tradingbot.repository.TradingdataRepository.load_ticker_data', return_value=trading_df)
     s = TradingbotSolution(chromosome=np.asarray([]))
     timestamp_bought = '1970-01-01'
     timestamp_sold = '1970-01-10'
@@ -52,9 +56,8 @@ def test_tradingbotsolution_sell(mocker):
 
 
 @mockenv(TRADED_TICKER_NAME="AAPL", BUDGET="20")
-def test_buy_sell(mocker):
-    df = load_ticker_data('test/tradingbot/test_data.csv')
-    mocker.patch('src.tradingbot.tradingbot.load_ticker_data', return_value=df)
+def test_buy_sell(mocker, trading_df):
+    mocker.patch('src.tradingbot.repository.TradingdataRepository.load_ticker_data', return_value=trading_df)
     s = TradingbotSolution(chromosome=np.asarray([]), account_balance=20)
     timestamp_bought = '1970-01-01'
     timestamp_sold = '1970-01-05'
@@ -69,10 +72,9 @@ def test_buy_sell(mocker):
 
 
 @mockenv(TRADED_TICKER_NAME="INCREASING", START_TIMESTAMP="34361", END_TIMESTAMP="811961", BUDGET="10")
-def test_take_profit(mocker):
+def test_take_profit(mocker, trading_df):
     # Buy on first date, inconclusive on other dates, Take profit should trigger when threshold is hit
-    df = load_ticker_data('test/tradingbot/test_data.csv')
-    mocker.patch('src.tradingbot.tradingbot.load_ticker_data', return_value=df)
+    mocker.patch('src.tradingbot.repository.TradingdataRepository.load_ticker_data', return_value=trading_df)
     mocker.patch('src.tradingbot.decisions.TradingStrategies.perform_decisions_for_row',
                  side_effect=[{"dummy_strategy": Decision.BUY if i == 0 else Decision.INCONCLUSIVE} for i in range(10)])
 
@@ -84,10 +86,9 @@ def test_take_profit(mocker):
 
 
 @mockenv(TRADED_TICKER_NAME="DECREASING", START_TIMESTAMP="34361", END_TIMESTAMP="811961", BUDGET="10")
-def test_stop_loss(mocker):
+def test_stop_loss(mocker, trading_df):
     # Buy on first date, inconclusive on other dates, Stop loss should trigger when threshold is hit
-    df = load_ticker_data('test/tradingbot/test_data.csv')
-    mocker.patch('src.tradingbot.tradingbot.load_ticker_data', return_value=df)
+    mocker.patch('src.tradingbot.repository.TradingdataRepository.load_ticker_data', return_value=trading_df)
     mocker.patch('src.tradingbot.decisions.TradingStrategies.perform_decisions_for_row',
                  side_effect=[{"dummy_strategy": Decision.BUY if i == 0 else Decision.INCONCLUSIVE} for i in range(10)])
 
@@ -98,10 +99,9 @@ def test_stop_loss(mocker):
     np.testing.assert_almost_equal(result, 8, decimal=2)
 
 
-def test_sell_invalid_index(mocker):
+def test_sell_invalid_index(mocker, trading_df):
     # Sell a position on an index out of range
-    df = load_ticker_data('test/tradingbot/test_data.csv')
-    mocker.patch('src.tradingbot.tradingbot.load_ticker_data', return_value=df)
+    mocker.patch('src.tradingbot.repository.TradingdataRepository.load_ticker_data', return_value=trading_df)
     s = TradingbotSolution(chromosome=np.asarray([]))
     s.bought_positions = [BuyPosition(datetime='1970-01-01', amount=1, price_at_buy=1) for _ in range(10)]
     with pytest.raises(InvalidTradeActionException):
@@ -109,10 +109,9 @@ def test_sell_invalid_index(mocker):
 
 
 @mockenv(TRADED_TICKER_NAME="AAPL", BUDGET="20")
-def test_buy_partial(mocker):
+def test_buy_partial(mocker, trading_df):
     # Buy is possible for a partial amount if account balance > 0
-    df = load_ticker_data('test/tradingbot/test_data.csv')
-    mocker.patch('src.tradingbot.tradingbot.load_ticker_data', return_value=df)
+    mocker.patch('src.tradingbot.repository.TradingdataRepository.load_ticker_data', return_value=trading_df)
     s = TradingbotSolution(chromosome=np.asarray([]), account_balance=20)
     timestamp_bought = '1970-01-01'
 
@@ -123,9 +122,8 @@ def test_buy_partial(mocker):
 
 
 @mockenv(TRADED_TICKER_NAME="AAPL", BUDGET="20")
-def test_buy_failed(mocker):
-    df = load_ticker_data('test/tradingbot/test_data.csv')
-    mocker.patch('src.tradingbot.tradingbot.load_ticker_data', return_value=df)
+def test_buy_failed(mocker, trading_df):
+    mocker.patch('src.tradingbot.repository.TradingdataRepository.load_ticker_data', return_value=trading_df)
 
     # Buy is not possible when account balance is 0
     s = TradingbotSolution(chromosome=np.asarray([]), account_balance=0)
@@ -136,12 +134,11 @@ def test_buy_failed(mocker):
 
 
 @mockenv(TRADED_TICKER_NAME="AAPL", START_TIMESTAMP="34361", END_TIMESTAMP="811961", BUDGET="100")
-def test_tradingbotsolution_fitness(mocker):
+def test_tradingbotsolution_fitness(mocker, trading_df):
     # Fitness works correctly for a dummy chromosome with only 1 strategy (100% weight)
     # Date range = 1970-01-01 -> 1970-01-10
     # Stop loss and take profit are intentionally suppressed in this test
-    df = load_ticker_data('test/tradingbot/test_data.csv')
-    mocker.patch('src.tradingbot.tradingbot.load_ticker_data', return_value=df)
+    mocker.patch('src.tradingbot.repository.TradingdataRepository.load_ticker_data', return_value=trading_df)
     chromosome = np.asarray([1.0, 1000.0, 0, 10])
 
     # Decisions: Buy gradually every day, sell everything at the end
