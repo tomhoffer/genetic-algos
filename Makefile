@@ -4,8 +4,11 @@ build-tradingbot:
 run-tradingbot: build-tradingbot
 	docker-compose up tradingbot
 
-run-test:
-	docker-compose up test
+run-tradingbot-test:
+	docker-compose up test-tradingbot
+
+run-generic-test:
+	docker-compose up test-generic
 
 run-test-local:
 	python -m pytest
