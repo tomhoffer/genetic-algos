@@ -7,6 +7,7 @@ services:
 
   postgres-dev:
     image: postgres:16-alpine
+    container_name: postgres-dev
     ports:
       - 5432:5432
     volumes:
@@ -30,6 +31,16 @@ services:
     depends_on:
       - redis
       - postgres-dev
+
+  tradingbot-server:
+    ports:
+      - 80:80
+    build:
+      dockerfile: src/tradingbot/server/Dockerfile
+    container_name: tradingbot-server
+    depends_on:
+      postgres-dev:
+        condition: service_healthy
 
   test-generic:
     build:
