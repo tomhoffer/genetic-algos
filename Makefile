@@ -16,3 +16,8 @@ run-generic-test:
 run-test-local:
 	python -m pytest
 
+build-tradingbot-server:
+	docker-compose build tradingbot-server
+
+run-tradingbot-server: build-tradingbot-server
+	docker-compose up tradingbot-server
