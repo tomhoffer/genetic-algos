@@ -105,6 +105,12 @@ class TradingbotSolution(Solution):
     def parse_strategy_weights(self):
         return self.chromosome[:-3]
 
+    def serialize_to_file(self, path: str):
+        trading_strategy_names: List[str] = get_trading_strategy_method_names()
+        trading_strategy_weights: np.ndarray = self.parse_strategy_weights().reshape(1, -1)  # Reshape to 2D with 1 row
+        df = pd.DataFrame(trading_strategy_weights, columns=trading_strategy_names)
+        df.to_csv(path)
+
 
 def get_trading_strategy_method_names() -> List[str]:
     """
@@ -200,7 +206,7 @@ def fitness(chromosome: np.ndarray) -> float:
     return perform_fitness(start_date=start_date, end_date=end_date, chromosome=chromosome)
 
 
-def backtest(winner: Solution, plot=False) -> float:
+def backtest(winner: TradingbotSolution, plot=False) -> float:
     end_date: str = timestamp_to_str(Config.get_value("BACKTEST_END_TIMESTAMP"))
     start_date: str = timestamp_to_str(Config.get_value("BACKTEST_START_TIMESTAMP"))
     global backtesting, transaction_log
@@ -285,20 +291,20 @@ if __name__ == "__main__":
     print(
         f"Training on period: {timestamp_to_str(Config.get_value('START_TIMESTAMP'))} - {timestamp_to_str(Config.get_value('END_TIMESTAMP'))}")
 
-    winners, _, _ = TrainingExecutor.run_parallel(params, return_global_winner=True, return_all_winners=True, n_runs=40)
+    winners, _, _ = TrainingExecutor.run_parallel(params, return_global_winner=True, return_all_winners=True, n_runs=1)
 
-    backtest_winner: Solution = Solution(chromosome=np.empty(0))
+    backtest_winner = TradingbotSolution(chromosome=np.empty(0))
     backtest_winner.fitness = -np.inf
     for winner in winners:
         backtest_fitness: float = backtest(winner)
         if backtest_fitness > backtest_winner.fitness:
-            backtest_winner = winner
+            backtest_winner = TradingbotSolution(chromosome=winner.chromosome)
             backtest_winner.fitness = backtest_fitness
 
     print(
         f"Found winner with weights {[el for el in zip(get_trading_strategy_method_names(), backtest_winner.chromosome)]} and resulting account balance {backtest_fitness}")
     backtest(backtest_winner, plot=True)
-    backtest_winner.serialize_to_file('storage/best.npy')
+    backtest_winner.serialize_to_file('storage/weights.csv')
 
     # winners, _, _ = TrainingExecutor.run((params, 1), return_global_winner=True)
 

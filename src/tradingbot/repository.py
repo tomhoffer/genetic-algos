@@ -7,6 +7,8 @@ from sqlalchemy import create_engine
 from src.tradingbot.config import Config
 from psycopg_pool import PoolTimeout, AsyncConnectionPool
 
+from src.tradingbot.exceptions import BadTradingWeightsException
+
 
 class DbConnector:
     """
@@ -88,3 +90,43 @@ class TradingdataRepository(DbConnector):
                     f"select column_name from INFORMATION_SCHEMA.COLUMNS where TABLE_NAME = '{self.table_name}'")
                 return [el[0] for el in await curs.fetchall()]
 
+
+class TradingStrategyWeightsRepository(DbConnector):
+    table_name: str
+
+    def __init__(self, table_name='trading_weights', db_name=Config.get_value('POSTGRES_DB')):
+        self.table_name = table_name
+        self.db_name = db_name
+
+    def load_strategy_weights_data(self, path=Path(__file__).parent / f"./data/weights.csv") -> pd.DataFrame:
+        return pd.read_csv(path)
+
+    def insert(self, path=Path(__file__).parent / f"./data/weights.csv") -> None:
+        df: pd.DataFrame = self.load_strategy_weights_data(path)
+        engine = create_engine(
+            f"postgresql+psycopg://{Config.get_value('POSTGRES_USER')}:{Config.get_value('POSTGRES_PASSWORD')}@{Config.get_value('POSTGRES_HOST')}:{Config.get_value('POSTGRES_PORT')}/{self.db_name}")
+        df.to_sql(
+            name=self.table_name,
+            con=engine,
+            if_exists='replace',
+            index=False,
+            chunksize=1000
+        )
+
+    async def get_weights(self) -> np.array:
+        async with self.async_connection_pool.connection() as connection:
+            async with connection.cursor() as curs:
+                await curs.execute(f'select * from {self.table_name};')
+                result = await curs.fetchall()
+                if len(result) > 1:
+                    raise BadTradingWeightsException(message='More than one row of trading weights found in DB!')
+                elif len(result) == 0 or result[0] is None:
+                    raise BadTradingWeightsException(message='No trading weights found in DB!')
+                return result[0]
+
+    async def get_db_columns(self) -> np.array:
+        async with self.async_connection_pool.connection() as connection:
+            async with connection.cursor() as curs:
+                await curs.execute(
+                    f"select column_name from INFORMATION_SCHEMA.COLUMNS where TABLE_NAME = '{self.table_name}'")
+                return [el[0] for el in await curs.fetchall()]
