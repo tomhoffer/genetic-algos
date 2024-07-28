@@ -14,8 +14,10 @@ class DbConnector:
     """
 
     async_connection_pool: AsyncConnectionPool = None
+    db_name: str
 
     async def init_pool(self, dbname: str, user: str, password: str, host: str):
+        self.db_name = dbname
         try:
             self.async_connection_pool = AsyncConnectionPool(
                 open=False,
@@ -33,10 +35,13 @@ class DbConnector:
 
 class TradingdataRepository(DbConnector):
     use_cache: bool
+    table_name: str
 
-    def __init__(self, use_cache=True):
+    def __init__(self, use_cache=True, table_name='tradingdata', db_name=Config.get_value('POSTGRES_DB')):
         # Disable the cache in tests
         self.use_cache = False if "pytest" in sys.modules else use_cache
+        self.table_name = table_name
+        self.db_name = db_name
 
     def load_ticker_data(
             self,
@@ -53,9 +58,9 @@ class TradingdataRepository(DbConnector):
                     path=Path(__file__).parent / f"./data/data-{Config.get_value('TRADED_TICKER_NAME')}.csv") -> None:
         df: pd.DataFrame = self.load_ticker_data(path)
         engine = create_engine(
-            f"postgresql+psycopg://{Config.get_value('POSTGRES_USER')}:{Config.get_value('POSTGRES_PASSWORD')}@{Config.get_value('POSTGRES_HOST')}:{Config.get_value('POSTGRES_PORT')}/{Config.get_value('POSTGRES_DB')}")
+            f"postgresql+psycopg://{Config.get_value('POSTGRES_USER')}:{Config.get_value('POSTGRES_PASSWORD')}@{Config.get_value('POSTGRES_HOST')}:{Config.get_value('POSTGRES_PORT')}/{self.db_name}")
         df.to_sql(
-            name="tradingdata",
+            name=self.table_name,
             con=engine,
             if_exists='replace',
             index=True,
@@ -65,5 +70,21 @@ class TradingdataRepository(DbConnector):
     async def get_latest_record(self) -> np.array:
         async with self.async_connection_pool.connection() as connection:
             async with connection.cursor() as curs:
-                await curs.execute('select * from tradingdata order by "Date" Desc limit 1;')
-                return await curs.fetchone()
+                await curs.execute(f'select * from {self.table_name} order by "Date" Desc limit 1;')
+                result = await curs.fetchall()
+                return result[0]
+
+    async def get_all_records(self) -> np.array:
+        async with self.async_connection_pool.connection() as connection:
+            async with connection.cursor() as curs:
+                await curs.execute(f'select * from {self.table_name} order by "Date" Desc;')
+                result = await curs.fetchall()
+                return result
+
+    async def get_db_columns(self) -> np.array:
+        async with self.async_connection_pool.connection() as connection:
+            async with connection.cursor() as curs:
+                await curs.execute(
+                    f"select column_name from INFORMATION_SCHEMA.COLUMNS where TABLE_NAME = '{self.table_name}'")
+                return [el[0] for el in await curs.fetchall()]
+

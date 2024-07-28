@@ -7,6 +7,9 @@ run-tradingbot: build-tradingbot
 run-tradingbot-test:
 	docker-compose up test-tradingbot
 
+build-tradingbot-test:
+	docker-compose build test-tradingbot
+
 run-generic-test:
 	docker-compose up test-generic
 
