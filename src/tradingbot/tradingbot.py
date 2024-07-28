@@ -109,7 +109,7 @@ class TradingbotSolution(Solution):
         trading_strategy_names: List[str] = get_trading_strategy_method_names()
         trading_strategy_weights: np.ndarray = self.parse_strategy_weights().reshape(1, -1)  # Reshape to 2D with 1 row
         df = pd.DataFrame(trading_strategy_weights, columns=trading_strategy_names)
-        df.to_csv(path)
+        df.to_csv(path, index=False)
 
 
 def get_trading_strategy_method_names() -> List[str]:
