@@ -1,5 +1,5 @@
 build-tradingbot:
-	docker build src/tradingbot
+	docker-compose build tradingbot
 
 run-tradingbot: build-tradingbot
 	docker-compose up tradingbot
