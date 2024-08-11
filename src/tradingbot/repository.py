@@ -38,10 +38,12 @@ class DbConnector:
 class TradingdataRepository(DbConnector):
     use_cache: bool
     table_name: str
+    cached_data: pd.DataFrame
 
     def __init__(self, use_cache=True, table_name='tradingdata', db_name=Config.get_value('POSTGRES_DB')):
         # Disable the cache in tests
         self.use_cache = False if "pytest" in sys.modules else use_cache
+        self.cached_data = pd.DataFrame()
         self.table_name = table_name
         self.db_name = db_name
 
@@ -51,10 +53,18 @@ class TradingdataRepository(DbConnector):
             start_date: str = None,
             end_date: str = None,
     ) -> pd.DataFrame:
+        if self.use_cache and not self.cached_data.empty:
+            return self.cached_data
+
         if start_date and end_date:
-            return pd.read_csv(path, parse_dates=['Date'], index_col=['Date'])[start_date:end_date]
+            data = pd.read_csv(path, parse_dates=['Date'], index_col=['Date'])[start_date:end_date]
         else:
-            return pd.read_csv(path, parse_dates=['Date'], index_col=['Date'])
+            data = pd.read_csv(path, parse_dates=['Date'], index_col=['Date'])
+
+        if self.use_cache:
+            self.cached_data = data
+
+        return data
 
     def bulk_insert(self,
                     path=Path(__file__).parent / f"./data/data-{Config.get_value('TRADED_TICKER_NAME')}.csv") -> None:

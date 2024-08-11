@@ -93,16 +93,16 @@ class TradingbotSolution(Solution):
         cheapest_buy_position: BuyPosition = min(self.bought_positions, key=lambda x: x.price_at_buy)
         self.sell(datetime=datetime, index=self.bought_positions.index(cheapest_buy_position))
 
-    def parse_chromosome_trade_size(self):
+    def parse_chromosome_trade_size(self) -> float:
         return self.chromosome[-1]
 
-    def parse_chromosome_stop_loss(self):
+    def parse_chromosome_stop_loss(self) -> float:
         return self.chromosome[-2]
 
-    def parse_chromosome_take_profit(self):
+    def parse_chromosome_take_profit(self) -> float:
         return self.chromosome[-3]
 
-    def parse_strategy_weights(self):
+    def parse_strategy_weights(self) -> np.ndarray:
         return self.chromosome[:-3]
 
     def serialize_to_file(self, path: str):
