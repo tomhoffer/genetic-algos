@@ -189,9 +189,8 @@ def decide_row(row: np.array, row_np_index: Dict, solution: TradingbotSolution):
         solution.buy(datetime=row_datetime, amount=trade_size_adjusted, price=ticker_price)
         result = Decision.BUY
     elif decisions_sum < 0:
-        # Sell oldest trade
-        solution.sell(datetime=row_datetime, index=0)
-        # solution.sell_position_with_highest_profit(datetime=row_datetime)
+        # Sell position with the highest profit
+        # solution.sell(datetime=row_datetime, index=0)
         profit: float = solution.sell_position_with_highest_profit(datetime=row_datetime)
         result = Decision.SELL
 
