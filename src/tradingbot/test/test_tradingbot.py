@@ -78,11 +78,21 @@ def test_take_profit(mocker, trading_df):
     mocker.patch('src.tradingbot.decisions.TradingStrategies.perform_decisions_for_row',
                  side_effect=[{"dummy_strategy": Decision.BUY if i == 0 else Decision.INCONCLUSIVE} for i in range(10)])
 
-    chromosome = np.asarray([1.0, 1.2, 1.0, 10])
-    s = TradingbotSolution(chromosome=chromosome)
-    s.buy(datetime='1970-01-01', price=10, amount=1)
+    chromosome = np.asarray([1.0, 1.2, 1.0, 10])  # Take profit set at 120%
     result = fitness(chromosome)
     np.testing.assert_almost_equal(result, 12, decimal=2)
+
+
+@mockenv(TRADED_TICKER_NAME="INCREASING", START_TIMESTAMP="34361", END_TIMESTAMP="811961", BUDGET="20")
+def test_take_profit_multiple(mocker, trading_df):
+    # Buy on first and second date, inconclusive on other dates, Take profit should trigger when threshold is hit
+    mocker.patch('src.tradingbot.repository.TradingdataRepository.load_ticker_data', return_value=trading_df)
+    mocker.patch('src.tradingbot.decisions.TradingStrategies.perform_decisions_for_row',
+                 side_effect=[{"dummy_strategy": Decision.BUY if i <= 1 else Decision.INCONCLUSIVE} for i in range(10)])
+
+    chromosome = np.asarray([1.0, 1.2, 1.0, 10])  # Take profit set at 120%
+    result = fitness(chromosome)
+    np.testing.assert_almost_equal(result, 24, decimal=2)
 
 
 @mockenv(TRADED_TICKER_NAME="DECREASING", START_TIMESTAMP="34361", END_TIMESTAMP="811961", BUDGET="10")
@@ -92,11 +102,22 @@ def test_stop_loss(mocker, trading_df):
     mocker.patch('src.tradingbot.decisions.TradingStrategies.perform_decisions_for_row',
                  side_effect=[{"dummy_strategy": Decision.BUY if i == 0 else Decision.INCONCLUSIVE} for i in range(10)])
 
-    chromosome = np.asarray([1.0, 2.0, 0.8, 10])
-    s = TradingbotSolution(chromosome=chromosome)
-    s.buy(datetime='1970-01-01', price=10, amount=1)
+    # Single position hits stop loss
+    chromosome = np.asarray([1.0, 2.0, 0.8, 10])  # Stop loss set at 80%
     result = fitness(chromosome)
     np.testing.assert_almost_equal(result, 8, decimal=2)
+
+
+@mockenv(TRADED_TICKER_NAME="DECREASING", START_TIMESTAMP="34361", END_TIMESTAMP="811961", BUDGET="20")
+def test_stop_loss_multiple(mocker, trading_df):
+    # Buy on first and second date, inconclusive on other dates, Stop loss should trigger when threshold is hit
+    mocker.patch('src.tradingbot.repository.TradingdataRepository.load_ticker_data', return_value=trading_df)
+    mocker.patch('src.tradingbot.decisions.TradingStrategies.perform_decisions_for_row',
+                 side_effect=[{"dummy_strategy": Decision.BUY if i <= 1 else Decision.INCONCLUSIVE} for i in range(10)])
+
+    chromosome = np.asarray([1.0, 2.0, 0.8, 10])  # Stop loss set at 80%, Trade size = 10
+    result = fitness(chromosome)
+    np.testing.assert_almost_equal(result, 16, decimal=2)
 
 
 def test_sell_invalid_index(mocker, trading_df):
