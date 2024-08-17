@@ -1,4 +1,5 @@
 import logging
+import statistics
 from dataclasses import dataclass
 from datetime import datetime
 from functools import cache
@@ -62,10 +63,11 @@ class TradingbotSolution(Solution):
         self.account_balance -= amount_to_buy
         logging.debug("Buying for %sUSD on date %s with price %s", amount, datetime, price)
 
-    def sell(self, datetime: str, index: int):
+    def sell(self, datetime: str, index: int) -> float:
         """
         :param datetime: Datetime of sell action
         :param index: Index in the BuyPosition.bought_positions list
+        :return: Profit of the sell action
         """
         if len(self.bought_positions) == 0:
             return
@@ -77,9 +79,10 @@ class TradingbotSolution(Solution):
 
         df: pd.DataFrame = trading_data_repository.load_ticker_data()
         ticker_value_at_sell: float = df.at[datetime, f"{Config.get_value('TRADED_TICKER_NAME')}_Adj Close"]
-        profit: float = (ticker_value_at_sell / sold_position.price_at_buy * sold_position.amount)
-        self.account_balance += profit
-        logging.debug("Selling with profit of %s on date %s", profit, datetime)
+        value_at_sell: float = (ticker_value_at_sell / sold_position.price_at_buy * sold_position.amount)
+        self.account_balance += value_at_sell
+        logging.debug("Selling with profit of %s on date %s", value_at_sell, datetime)
+        return value_at_sell - sold_position.price_at_buy
 
     def sell_all(self, datetime: str):
         if len(self.bought_positions) == 0:
@@ -87,11 +90,16 @@ class TradingbotSolution(Solution):
         for i in range(len(self.bought_positions)):
             self.sell(datetime=datetime, index=0)
 
-    def sell_position_with_highest_profit(self, datetime: str):
+    def sell_position_with_highest_profit(self, datetime: str) -> float:
+        """
+        :param datetime: Datetime of sell action
+        :return: Profit of the sell action
+        """
         if len(self.bought_positions) == 0:
             return
         cheapest_buy_position: BuyPosition = min(self.bought_positions, key=lambda x: x.price_at_buy)
-        self.sell(datetime=datetime, index=self.bought_positions.index(cheapest_buy_position))
+        profit: float = self.sell(datetime=datetime, index=self.bought_positions.index(cheapest_buy_position))
+        return profit
 
     def parse_chromosome_trade_size(self) -> float:
         return self.chromosome[-1]
@@ -160,7 +168,10 @@ def decide_row(row: np.array, row_np_index: Dict, solution: TradingbotSolution):
             for index, position in enumerate(solution.bought_positions):
                 value_proportion: float = ticker_price / position.price_at_buy
                 if value_proportion >= take_profit_proportion or value_proportion <= stop_loss_proportion:
-                    solution.sell(datetime=row_datetime, index=index)
+                    profit: float = solution.sell(datetime=row_datetime, index=index)
+                    if backtesting:
+                        transaction_log.append({'type': Decision.SELL, 'datetime': row_datetime, 'price': ticker_price,
+                                                'profit': profit})
                     sold = True
                     break
             if not sold:
@@ -171,6 +182,7 @@ def decide_row(row: np.array, row_np_index: Dict, solution: TradingbotSolution):
     decisions_sum = np.sum(np.multiply(solution.parse_strategy_weights(), decisions))
 
     result = Decision.INCONCLUSIVE
+    profit = np.NINF
     if decisions_sum > 0:
         # Buy based on confidence
         trade_size_adjusted = trade_size * (1 + decisions_sum)
@@ -180,10 +192,11 @@ def decide_row(row: np.array, row_np_index: Dict, solution: TradingbotSolution):
         # Sell oldest trade
         solution.sell(datetime=row_datetime, index=0)
         # solution.sell_position_with_highest_profit(datetime=row_datetime)
+        profit: float = solution.sell_position_with_highest_profit(datetime=row_datetime)
         result = Decision.SELL
 
     if backtesting:
-        transaction_log.append({'type': result, 'datetime': row_datetime, 'price': ticker_price})
+        transaction_log.append({'type': result, 'datetime': row_datetime, 'price': ticker_price, 'profit': profit})
 
 
 def perform_fitness(start_date: str, end_date: str, chromosome: np.ndarray) -> float:
@@ -214,6 +227,11 @@ def backtest(winner: TradingbotSolution, plot=False) -> float:
     transaction_log = []
     winner_fitness = perform_fitness(start_date=start_date, end_date=end_date, chromosome=winner.chromosome)
 
+    buys = [(datetime.strptime(log['datetime'], '%Y-%m-%d'), log['price']) for log in transaction_log if
+            log['type'] == Decision.BUY]
+    sells = [(datetime.strptime(log['datetime'], '%Y-%m-%d'), log['price'], log['profit']) for log in
+             transaction_log if log['type'] == Decision.SELL]
+
     # Plot the graph with buys and sells
     print(f"Resulting account balance over backtesting period: {winner_fitness}")
     if plot:
@@ -221,17 +239,16 @@ def backtest(winner: TradingbotSolution, plot=False) -> float:
         ticker_df: pd.DataFrame = trading_data_repository.load_ticker_data(start_date=start_date, end_date=end_date)
         ax.plot(ticker_df.index, ticker_df[f"{Config.get_value('TRADED_TICKER_NAME')}_Adj Close"])
 
-        buys = [(datetime.strptime(log['datetime'], '%Y-%m-%d'), log['price']) for log in transaction_log if
-                log['type'] == Decision.BUY]
-        sells = [(datetime.strptime(log['datetime'], '%Y-%m-%d'), log['price']) for log in transaction_log if
-                 log['type'] == Decision.SELL]
-
         for buy, sell in zip(buys, sells):
             plt.scatter(x=buy[0], y=buy[1], color='g')
             plt.scatter(x=sell[0], y=sell[1], color='r')
         plt.title(f"Resulting balance: {winner_fitness}")
         plt.show()
         plt.savefig("backtest.png")
+
+    for sell in sells:
+        print(f"Backtest sold position with profit: {sell}")
+
     backtesting = False
     return winner_fitness
 
@@ -295,14 +312,18 @@ if __name__ == "__main__":
 
     backtest_winner = TradingbotSolution(chromosome=np.empty(0))
     backtest_winner.fitness = -np.inf
+    backtest_results = []
     for winner in winners:
         backtest_fitness: float = backtest(winner)
+        print(f"Backtest fitness: {backtest_fitness}")
+        backtest_results.append(backtest_fitness)
         if backtest_fitness > backtest_winner.fitness:
             backtest_winner = TradingbotSolution(chromosome=winner.chromosome)
             backtest_winner.fitness = backtest_fitness
-
+    print(f"Mean backtest fitness: {statistics.fmean(backtest_results)}")
+    print(f"Stdev backtest fitness: {statistics.stdev(backtest_results)}")
     print(
-        f"Found winner with weights {[el for el in zip(get_trading_strategy_method_names(), backtest_winner.chromosome)]} and resulting account balance {backtest_fitness}")
+        f"Found winner with weights {[el for el in zip(get_trading_strategy_method_names(), backtest_winner.chromosome)]} and resulting account balance {backtest_winner.fitness}")
     backtest(backtest_winner, plot=True)
     backtest_winner.serialize_to_file('storage/weights.csv')
 
