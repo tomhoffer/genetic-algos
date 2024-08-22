@@ -44,6 +44,13 @@ services:
       postgres-dev:
         condition: service_healthy
 
+  tradingbot-preprocessor:
+    build:
+      dockerfile: src/tradingbot/preprocessor/Dockerfile
+    container_name: tradingbot-preprocessor
+    depends_on:
+      - postgres-dev
+
   test-generic:
     build:
       dockerfile: Dockerfile-test
