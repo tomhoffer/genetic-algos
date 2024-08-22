@@ -1,13 +1,15 @@
 import logging
 import sys
 from pathlib import Path
+from typing import Literal
+
 import numpy as np
 import pandas as pd
 from sqlalchemy import create_engine
 from src.tradingbot.config import Config
 from psycopg_pool import PoolTimeout, AsyncConnectionPool
 
-from src.tradingbot.exceptions import BadTradingWeightsException
+from src.tradingbot.exceptions import BadTradingWeightsException, NoDataFoundException
 
 
 class DbConnector:
@@ -66,25 +68,32 @@ class TradingdataRepository(DbConnector):
 
         return data
 
-    def bulk_insert(self,
-                    path=Path(__file__).parent / f"./data/data-{Config.get_value('TRADED_TICKER_NAME')}.csv") -> None:
-        df: pd.DataFrame = self.load_ticker_data(path)
+    def upload_from_df(self, df: pd.DataFrame, if_exists: Literal['fail', 'replace', 'append'] = 'replace'):
         engine = create_engine(
             f"postgresql+psycopg://{Config.get_value('POSTGRES_USER')}:{Config.get_value('POSTGRES_PASSWORD')}@{Config.get_value('POSTGRES_HOST')}:{Config.get_value('POSTGRES_PORT')}/{self.db_name}")
         df.to_sql(
             name=self.table_name,
             con=engine,
-            if_exists='replace',
+            if_exists=if_exists,
             index=True,
             chunksize=1000
         )
+
+    def upload_from_csv(self,
+                        path=Path(__file__).parent / f"./data/data-{Config.get_value('TRADED_TICKER_NAME')}.csv",
+                        if_exists: Literal['fail', 'replace', 'append'] = 'replace') -> None:
+        df: pd.DataFrame = self.load_ticker_data(path)
+        self.upload_from_df(df=df, if_exists=if_exists)
 
     async def get_latest_record(self) -> np.array:
         async with self.async_connection_pool.connection() as connection:
             async with connection.cursor() as curs:
                 await curs.execute(f'select * from {self.table_name} order by "Date" Desc limit 1;')
                 result = await curs.fetchall()
-                return result[0]
+                try:
+                    return result[0]
+                except IndexError:
+                    raise NoDataFoundException('No trading data found in the DB.')
 
     async def get_all_records(self) -> np.array:
         async with self.async_connection_pool.connection() as connection:

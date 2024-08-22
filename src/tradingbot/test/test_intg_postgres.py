@@ -6,7 +6,7 @@ import pytest
 import pytest_asyncio
 import psycopg
 from src.tradingbot.config import Config
-from src.tradingbot.exceptions import BadTradingWeightsException
+from src.tradingbot.exceptions import BadTradingWeightsException, NoDataFoundException
 from src.tradingbot.repository import TradingdataRepository, TradingStrategyWeightsRepository
 
 # Configuration for PostgreSQL connection
@@ -78,7 +78,7 @@ async def drop_db(db_cursor, create_db, unique_test_db_name, tradingdata_reposit
 @pytest.mark.asyncio
 async def test_tradingdata_bulk_insert(tradingdata_repository: TradingdataRepository, drop_db):
     df: pd.DataFrame = tradingdata_repository.load_ticker_data()
-    tradingdata_repository.bulk_insert()
+    tradingdata_repository.upload_from_csv()
     result = await tradingdata_repository.get_all_records()
     assert len(result) == df.shape[0]
 
@@ -87,21 +87,29 @@ async def test_tradingdata_bulk_insert(tradingdata_repository: TradingdataReposi
 async def test_column_order(tradingdata_repository: TradingdataRepository, drop_db):
     # Test if order of columns in the uploaded df is preserved in the DB
     df: pd.DataFrame = tradingdata_repository.load_ticker_data('src/tradingbot/test/test_data.csv')
-    tradingdata_repository.bulk_insert('src/tradingbot/test/test_data.csv')
+    tradingdata_repository.upload_from_csv('src/tradingbot/test/test_data.csv')
     result = await tradingdata_repository.get_db_columns()
     assert result == [df.index.name] + df.columns.tolist()
 
 
 @pytest.mark.asyncio
 async def test_tradingdata_get_latest_record(tradingdata_repository: TradingdataRepository, drop_db):
-    tradingdata_repository.bulk_insert('src/tradingbot/test/test_data.csv')
+    tradingdata_repository.upload_from_csv('src/tradingbot/test/test_data.csv')
     result = await tradingdata_repository.get_latest_record()
     assert result == (datetime(1970, 1, 10, 0, 0), 10, 1, 1.9)
 
 
 @pytest.mark.asyncio
+async def test_tradingdata_get_latest_record_raises_empty_exception(tradingdata_repository: TradingdataRepository,
+                                                                    drop_db):
+    tradingdata_repository.upload_from_csv('src/tradingbot/test/test_data_empty.csv')
+    with pytest.raises(NoDataFoundException):
+        await tradingdata_repository.get_latest_record()
+
+
+@pytest.mark.asyncio
 async def test_tradingdata_get_all_records(tradingdata_repository: TradingdataRepository, drop_db):
-    tradingdata_repository.bulk_insert('src/tradingbot/test/test_data.csv')
+    tradingdata_repository.upload_from_csv('src/tradingbot/test/test_data.csv')
     result = await tradingdata_repository.get_all_records()
     assert result == [(datetime(1970, 1, 10, 0, 0), 10, 1, 1.9),
                       (datetime(1970, 1, 9, 0, 0), 9, 2, 1.8),
