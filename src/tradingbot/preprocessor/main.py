@@ -36,9 +36,9 @@ async def main():
     ticker.compute_technical_indicators()
 
     # Remove the prefetched data before uploading
-    print("Before: ", ticker.data_df)
+    print("Before transformation: ", ticker.data_df)
     ticker.data_df.drop(ticker.data_df.head(number_of_days_to_prefetch + 3).index, inplace=True)
-    print("After: ", ticker.data_df)
+    print("After transformation: ", ticker.data_df)
 
     # Fetch sentiment data only for relevant dates
     ticker.fetch_sentiment_data()
