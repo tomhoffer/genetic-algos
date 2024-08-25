@@ -1,16 +1,8 @@
 import numpy as np
-from enum import IntEnum
 from typing import Dict
 
 from src.tradingbot.config import Config
-
-
-class Decision(IntEnum):
-    STRONG_BUY = 2
-    BUY = 1
-    SELL = -1
-    STRONG_SELL = -1
-    INCONCLUSIVE = 0
+from src.tradingbot.enums import Decision
 
 
 class TradingStrategies:

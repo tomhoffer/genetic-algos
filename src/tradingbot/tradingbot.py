@@ -18,7 +18,8 @@ from src.generic.mutation import Mutation
 from src.generic.selection import Selection
 
 from src.tradingbot.config import Config
-from src.tradingbot.decisions import TradingStrategies, Decision
+from src.tradingbot.decisions import TradingStrategies
+from src.tradingbot.enums import Decision
 from src.tradingbot.exceptions import InvalidTradeActionException
 from src.tradingbot.hyperparams import TradingBotHyperparams
 from src.tradingbot.repository import TradingdataRepository

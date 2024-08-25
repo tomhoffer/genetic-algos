@@ -2,7 +2,7 @@ from typing import List
 import numpy as np
 import pytest
 from conftest import mockenv
-from src.tradingbot.decisions import Decision
+from src.tradingbot.enums import Decision
 from src.tradingbot.exceptions import InvalidTradeActionException
 from src.tradingbot.repository import TradingdataRepository
 from src.tradingbot.tradingbot import TradingbotSolution, initial_population_generator, BuyPosition, fitness, \
