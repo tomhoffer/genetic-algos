@@ -259,6 +259,19 @@ class TradingStrategies:
             return Decision.SELL
 
     @staticmethod
+    def decide_sentiment_delta_1d(sentiment_delta_1d: float) -> Decision:
+        if sentiment_delta_1d > 0.1:
+            return Decision.STRONG_BUY
+        if sentiment_delta_1d > 0.05:
+            return Decision.BUY
+        if sentiment_delta_1d < 0.1:
+            return Decision.STRONG_SELL
+        if sentiment_delta_1d < 0.05:
+            return Decision.SELL
+        else:
+            return Decision.INCONCLUSIVE
+
+    @staticmethod
     def decide_dpo(dpo_value: float) -> Decision:
         """
         Detrended Price Oscillator https://www.investopedia.com/terms/d/detrended-price-oscillator-dpo.asp
@@ -359,7 +372,6 @@ class TradingStrategies:
             return Decision.BUY
         return Decision.INCONCLUSIVE
 
-
     def perform_decisions_for_row(self, row: np.array, row_np_index: Dict) -> Dict:
         result_obj = {}
         ticker_name = Config.get_value("TRADED_TICKER_NAME")
@@ -410,6 +422,8 @@ class TradingStrategies:
 
         try:
             result_obj['sentiment'] = self.decide_sentiment(sentiment_value=row[row_np_index['sentiment']])
+            result_obj['sentiment_delta_1d'] = self.decide_sentiment_delta_1d(
+                sentiment_delta_1d=row[row_np_index['sentiment_delta_1d']])
         except (KeyError, IndexError):  # Missing sentiment column
             result_obj['sentiment'] = Decision.INCONCLUSIVE
         return result_obj

@@ -42,6 +42,7 @@ async def main():
 
     # Fetch sentiment data only for relevant dates
     ticker.fetch_sentiment_data()
+    ticker.compute_sentiment_delta()
 
     # Upload the data into DB
     trading_data_repository.upload_from_df(df=ticker.data_df, if_exists='append')

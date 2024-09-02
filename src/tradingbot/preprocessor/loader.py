@@ -150,7 +150,13 @@ class Ticker:
                 sentiment = resp['data'][self.name][0]['pos_total_count'] / resp['data'][self.name][0]['total_count'] if \
                     resp['data'][self.name] else 0.5
             except (ZeroDivisionError, KeyError):
-                raise SentimentDataDownloadFailedException(
-                    message=f"Error downloading sentiment data for date {date}. Resp: {resp}")
-                # sentiment = np.nan
+                # raise SentimentDataDownloadFailedException(
+                #    message=f"Error downloading sentiment data for date {date}. Resp: {resp}")
+                sentiment = np.nan
             self.data_df.at[date, 'sentiment'] = sentiment
+
+    def compute_sentiment_delta(self) -> None:
+        if not hasattr(self, 'data_df'):
+            raise MissingHistoricalDataException
+
+        self.data_df['sentiment_delta_1d'] = self.data_df['sentiment'].diff()
