@@ -1,6 +1,7 @@
 import numpy as np
 from typing import Dict
 
+from src.generic.model import Population
 from src.tradingbot.config import Config
 from src.tradingbot.enums import Decision
 
@@ -263,6 +264,49 @@ class TradingStrategies:
         if sentiment_value < 0.5:
             return Decision.SELL
 
+    def _get_opposite_decision(self, decision: Decision) -> Decision:
+        """
+            :param decision: Decision to reverse
+            :return: Reversed decision
+        """
+        return Decision.SELL if decision == Decision.BUY else Decision.BUY if decision == Decision.SELL else Decision.INCONCLUSIVE
+
+    def decide_opposite_sentiment(self, sentiment_value: float) -> Decision:
+        """
+            :param: sentiment_value: Sentiment value on given day
+            :return: The opposite decision that would be made based on the sentiment (opposite strategy to the market)
+        """
+        if np.isnan(sentiment_value):
+            return Decision.INCONCLUSIVE
+        return self._get_opposite_decision(self.decide_sentiment(sentiment_value))
+
+    def decide_opposite_sentiment_delta_1d(self, sentiment_1d: float) -> Decision:
+        """
+            :param: sentiment_value: Sentiment value delta over 1 day
+            :return: The opposite decision that would be made based on the sentiment (opposite strategy to the market)
+        """
+        if np.isnan(sentiment_1d):
+            return Decision.INCONCLUSIVE
+        return self._get_opposite_decision(self.decide_sentiment_delta_1d(sentiment_1d))
+
+    def decide_opposite_sentiment_delta_7d(self, sentiment_7d: float) -> Decision:
+        """
+            :param: sentiment_value: Sentiment value delta over 7 days
+            :return: The opposite decision that would be made based on the sentiment (opposite strategy to the market)
+        """
+        if np.isnan(sentiment_7d):
+            return Decision.INCONCLUSIVE
+        return self._get_opposite_decision(self.decide_sentiment_delta_7d(sentiment_7d))
+
+    def decide_opposite_sentiment_delta_14d(self, sentiment_14d: float) -> Decision:
+        """
+            :param: sentiment_value: Sentiment value delta over 14 days
+            :return: The opposite decision that would be made based on the sentiment (opposite strategy to the market)
+        """
+        if np.isnan(sentiment_14d):
+            return Decision.INCONCLUSIVE
+        return self._get_opposite_decision(self.decide_sentiment_delta_14d(sentiment_14d))
+
     @staticmethod
     def decide_sentiment_delta_1d(sentiment_1d: float) -> Decision:
         if sentiment_1d > SENTIMENT_STRONG_BUY_BOUNDARY:
@@ -453,17 +497,30 @@ class TradingStrategies:
 
         try:
             result_obj['sentiment'] = self.decide_sentiment(sentiment_value=row[row_np_index['sentiment']])
+            result_obj['opposite_sentiment'] = self.decide_opposite_sentiment(
+                sentiment_value=row[row_np_index['sentiment']])
             result_obj['sentiment_delta_1d'] = self.decide_sentiment_delta_1d(
+                sentiment_1d=row[row_np_index['sentiment_delta_1d']])
+            result_obj['opposite_sentiment_delta_1d'] = self.decide_opposite_sentiment_delta_1d(
                 sentiment_1d=row[row_np_index['sentiment_delta_1d']])
             result_obj['sentiment_delta_7d'] = self.decide_sentiment_delta_7d(
                 sentiment_7d=row[row_np_index['sentiment_delta_7d']])
+            result_obj['opposite_sentiment_delta_7d'] = self.decide_opposite_sentiment_delta_7d(
+                sentiment_7d=row[row_np_index['sentiment_delta_7d']])
             result_obj['sentiment_delta_14d'] = self.decide_sentiment_delta_14d(
                 sentiment_14d=row[row_np_index['sentiment_delta_14d']])
+            result_obj['opposite_sentiment_delta_14d'] = self.decide_opposite_sentiment_delta_14d(
+                sentiment_14d=row[row_np_index['sentiment_delta_14d']])
+
 
         except (KeyError, IndexError):  # Missing sentiment column
             result_obj['sentiment'] = Decision.INCONCLUSIVE
             result_obj['sentiment_delta_1d'] = Decision.INCONCLUSIVE
             result_obj['sentiment_delta_7d'] = Decision.INCONCLUSIVE
             result_obj['sentiment_delta_14d'] = Decision.INCONCLUSIVE
+            result_obj['opposite_sentiment'] = Decision.INCONCLUSIVE
+            result_obj['opposite_sentiment_delta_1d'] = Decision.INCONCLUSIVE
+            result_obj['opposite_sentiment_delta_7d'] = Decision.INCONCLUSIVE
+            result_obj['opposite_sentiment_delta_14d'] = Decision.INCONCLUSIVE
             # TODO add log error
         return result_obj
