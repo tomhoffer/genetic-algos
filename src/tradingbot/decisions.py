@@ -4,6 +4,11 @@ from typing import Dict
 from src.tradingbot.config import Config
 from src.tradingbot.enums import Decision
 
+SENTIMENT_STRONG_BUY_BOUNDARY = 0.1
+SENTIMENT_BUY_BOUNDARY = 0.05
+SENTIMENT_SELL_BOUNDARY = -0.05
+SENTIMENT_STRONG_SELL_BOUNDARY = -0.1
+
 
 class TradingStrategies:
 
@@ -259,14 +264,40 @@ class TradingStrategies:
             return Decision.SELL
 
     @staticmethod
-    def decide_sentiment_delta_1d(sentiment_delta_1d: float) -> Decision:
-        if sentiment_delta_1d > 0.1:
+    def decide_sentiment_delta_1d(sentiment_1d: float) -> Decision:
+        if sentiment_1d > SENTIMENT_STRONG_BUY_BOUNDARY:
             return Decision.STRONG_BUY
-        if sentiment_delta_1d > 0.05:
+        if sentiment_1d > SENTIMENT_BUY_BOUNDARY:
             return Decision.BUY
-        if sentiment_delta_1d < 0.1:
+        if sentiment_1d < SENTIMENT_STRONG_SELL_BOUNDARY:
             return Decision.STRONG_SELL
-        if sentiment_delta_1d < 0.05:
+        if sentiment_1d < SENTIMENT_SELL_BOUNDARY:
+            return Decision.SELL
+        else:
+            return Decision.INCONCLUSIVE
+
+    @staticmethod
+    def decide_sentiment_delta_7d(sentiment_7d: float) -> Decision:
+        if sentiment_7d > SENTIMENT_STRONG_BUY_BOUNDARY:
+            return Decision.STRONG_BUY
+        if sentiment_7d > SENTIMENT_BUY_BOUNDARY:
+            return Decision.BUY
+        if sentiment_7d < SENTIMENT_STRONG_SELL_BOUNDARY:
+            return Decision.STRONG_SELL
+        if sentiment_7d < SENTIMENT_SELL_BOUNDARY:
+            return Decision.SELL
+        else:
+            return Decision.INCONCLUSIVE
+
+    @staticmethod
+    def decide_sentiment_delta_14d(sentiment_14d: float) -> Decision:
+        if sentiment_14d > SENTIMENT_STRONG_BUY_BOUNDARY:
+            return Decision.STRONG_BUY
+        if sentiment_14d > SENTIMENT_BUY_BOUNDARY:
+            return Decision.BUY
+        if sentiment_14d < SENTIMENT_STRONG_SELL_BOUNDARY:
+            return Decision.STRONG_SELL
+        if sentiment_14d < SENTIMENT_SELL_BOUNDARY:
             return Decision.SELL
         else:
             return Decision.INCONCLUSIVE
@@ -423,7 +454,16 @@ class TradingStrategies:
         try:
             result_obj['sentiment'] = self.decide_sentiment(sentiment_value=row[row_np_index['sentiment']])
             result_obj['sentiment_delta_1d'] = self.decide_sentiment_delta_1d(
-                sentiment_delta_1d=row[row_np_index['sentiment_delta_1d']])
+                sentiment_1d=row[row_np_index['sentiment_delta_1d']])
+            result_obj['sentiment_delta_7d'] = self.decide_sentiment_delta_7d(
+                sentiment_7d=row[row_np_index['sentiment_delta_7d']])
+            result_obj['sentiment_delta_14d'] = self.decide_sentiment_delta_14d(
+                sentiment_14d=row[row_np_index['sentiment_delta_14d']])
+
         except (KeyError, IndexError):  # Missing sentiment column
             result_obj['sentiment'] = Decision.INCONCLUSIVE
+            result_obj['sentiment_delta_1d'] = Decision.INCONCLUSIVE
+            result_obj['sentiment_delta_7d'] = Decision.INCONCLUSIVE
+            result_obj['sentiment_delta_14d'] = Decision.INCONCLUSIVE
+            # TODO add log error
         return result_obj

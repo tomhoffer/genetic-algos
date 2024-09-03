@@ -160,3 +160,5 @@ class Ticker:
             raise MissingHistoricalDataException
 
         self.data_df['sentiment_delta_1d'] = self.data_df['sentiment'].diff()
+        self.data_df['sentiment_delta_7d'] = self.data_df['sentiment'] - self.data_df['sentiment'].shift(7)
+        self.data_df['sentiment_delta_14d'] = self.data_df['sentiment'] - self.data_df['sentiment'].shift(14)

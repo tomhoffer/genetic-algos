@@ -246,8 +246,8 @@ def backtest(winner: TradingbotSolution, plot=False) -> float:
         plt.show()
         plt.savefig("backtest.png")
 
-    for sell in sells:
-        print(f"Backtest sold position with profit: {sell}")
+    #for sell in sells:
+    #    print(f"Backtest sold position with profit: {sell}")
 
     backtesting = False
     return winner_fitness
