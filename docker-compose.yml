@@ -4,6 +4,9 @@ services:
     container_name: redis
     ports:
       - '6379:6379'
+    restart: always
+    command: [ "redis-server", "--appendonly", "no", "--maxmemory", "15GB", "--maxmemory-policy", "allkeys-lfu" ]
+
     volumes:
       - /Users/tomashoffer/Documents/Coding-Projects/redis-data:/data
 
