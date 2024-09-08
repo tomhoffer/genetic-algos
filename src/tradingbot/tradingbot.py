@@ -322,6 +322,9 @@ if __name__ == "__main__":
     print(f"Stdev backtest fitness: {statistics.stdev(backtest_results)}")
     print(
         f"Found winner with weights {[el for el in zip(get_trading_strategy_method_names(), backtest_winner.chromosome)]} and resulting account balance {backtest_winner.fitness}")
+    print("Stop loss: ", backtest_winner.parse_chromosome_stop_loss())
+    print("Take profit: ", backtest_winner.parse_chromosome_take_profit())
+    print("Trade size: ", backtest_winner.parse_chromosome_trade_size())
 
     backtesting_periods = [("2022-01-01", "2023-01-01"), ("2023-01-01", "2024-01-01"), ("2024-01-01", "2024-08-28")]
 
