@@ -1,8 +1,7 @@
 import logging
 import sys
 from pathlib import Path
-from typing import Literal
-
+from typing import Literal, Dict
 import numpy as np
 import pandas as pd
 from sqlalchemy import create_engine
@@ -40,14 +39,21 @@ class DbConnector:
 class TradingdataRepository(DbConnector):
     use_cache: bool
     table_name: str
-    cached_data: pd.DataFrame
+    cached_data: Dict[str, pd.DataFrame]
 
     def __init__(self, use_cache=True, table_name='tradingdata', db_name=Config.get_value('POSTGRES_DB')):
         # Disable the cache in tests
         self.use_cache = False if "pytest" in sys.modules else use_cache
-        self.cached_data = pd.DataFrame()
+        self.cached_data = {}
         self.table_name = table_name
         self.db_name = db_name
+
+    def _is_in_cache(self, date_range: str) -> bool:
+        if not self.use_cache:
+            return False
+        if date_range in self.cached_data and not self.cached_data[date_range].empty:
+            return True
+        return False
 
     def load_ticker_data(
             self,
@@ -55,8 +61,9 @@ class TradingdataRepository(DbConnector):
             start_date: str = None,
             end_date: str = None,
     ) -> pd.DataFrame:
-        if self.use_cache and not self.cached_data.empty:
-            return self.cached_data
+        date_range = f"{start_date}-{end_date}"
+        if self._is_in_cache(date_range=date_range):
+            return self.cached_data[date_range]
 
         if start_date and end_date:
             data = pd.read_csv(path, parse_dates=['Date'], index_col=['Date'])[start_date:end_date]
@@ -64,7 +71,7 @@ class TradingdataRepository(DbConnector):
             data = pd.read_csv(path, parse_dates=['Date'], index_col=['Date'])
 
         if self.use_cache:
-            self.cached_data = data
+            self.cached_data[date_range] = data
 
         return data
 
