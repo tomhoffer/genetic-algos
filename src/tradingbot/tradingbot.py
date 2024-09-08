@@ -219,9 +219,9 @@ def fitness(chromosome: np.ndarray) -> float:
     return perform_fitness(start_date=start_date, end_date=end_date, chromosome=chromosome)
 
 
-def backtest(winner: TradingbotSolution, plot=False) -> float:
-    end_date: str = timestamp_to_str(Config.get_value("BACKTEST_END_TIMESTAMP"))
-    start_date: str = timestamp_to_str(Config.get_value("BACKTEST_START_TIMESTAMP"))
+def backtest(winner: TradingbotSolution, plot=False,
+             start_date: str = timestamp_to_str(Config.get_value("BACKTEST_START_TIMESTAMP")),
+             end_date: str = timestamp_to_str(Config.get_value("BACKTEST_END_TIMESTAMP"))) -> float:
     global backtesting, transaction_log
     backtesting = True
     transaction_log = []
@@ -233,7 +233,6 @@ def backtest(winner: TradingbotSolution, plot=False) -> float:
              transaction_log if log['type'] == Decision.SELL]
 
     # Plot the graph with buys and sells
-    print(f"Resulting account balance over backtesting period: {winner_fitness}")
     if plot:
         fig, ax = plt.subplots()
         ticker_df: pd.DataFrame = trading_data_repository.load_ticker_data(start_date=start_date, end_date=end_date)
@@ -246,7 +245,7 @@ def backtest(winner: TradingbotSolution, plot=False) -> float:
         plt.show()
         plt.savefig("backtest.png")
 
-    #for sell in sells:
+    # for sell in sells:
     #    print(f"Backtest sold position with profit: {sell}")
 
     backtesting = False
@@ -315,7 +314,6 @@ if __name__ == "__main__":
     backtest_results = []
     for winner in winners:
         backtest_fitness: float = backtest(winner)
-        print(f"Backtest fitness: {backtest_fitness}")
         backtest_results.append(backtest_fitness)
         if backtest_fitness > backtest_winner.fitness:
             backtest_winner = TradingbotSolution(chromosome=winner.chromosome)
@@ -324,8 +322,15 @@ if __name__ == "__main__":
     print(f"Stdev backtest fitness: {statistics.stdev(backtest_results)}")
     print(
         f"Found winner with weights {[el for el in zip(get_trading_strategy_method_names(), backtest_winner.chromosome)]} and resulting account balance {backtest_winner.fitness}")
-    backtest(backtest_winner, plot=True)
-    backtest_winner.serialize_to_file('storage/weights.csv')
+
+    backtesting_periods = [("2022-01-01", "2023-01-01"), ("2023-01-01", "2024-01-01"), ("2024-01-01", "2024-08-28")]
+
+    for backtesting_period in backtesting_periods:
+        result: float = backtest(backtest_winner, plot=True, start_date=backtesting_period[0],
+                                 end_date=backtesting_period[1])
+        print(f"Backtest over {backtesting_period[0]} - {backtesting_period[1]}: {result}")
+
+    # backtest_winner.serialize_to_file('storage/weights.csv')
 
     # winners, _, _ = TrainingExecutor.run((params, 1), return_global_winner=True)
 
