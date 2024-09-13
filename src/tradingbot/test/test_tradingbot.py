@@ -1,12 +1,16 @@
 from typing import List
+from unittest.mock import patch
+
 import numpy as np
 import pytest
+from numpy.testing import assert_raises, assert_array_equal
+
 from conftest import mockenv
 from src.tradingbot.enums import Decision
 from src.tradingbot.exceptions import InvalidTradeActionException
 from src.tradingbot.repository import TradingdataRepository
 from src.tradingbot.tradingbot import TradingbotSolution, initial_population_generator, BuyPosition, fitness, \
-    chromosome_validator_fn
+    chromosome_validator_fn, mutate_uniform
 
 
 @pytest.fixture
@@ -185,3 +189,40 @@ def test_tradingbotsolution_fitness(mocker, trading_df):
                  side_effect=[{"dummy_strategy": Decision.BUY if i < 5 else Decision.SELL} for i in range(10)])
     result: float = fitness(chromosome)
     np.testing.assert_almost_equal(result, 328.33, decimal=2)
+
+@patch('random.randint')
+@mockenv(P_MUTATION="1.0", USE_REDIS_FITNESS_CACHE="False")
+def test_mutate_uniform_mutates_exactly_1_chromosome(mock_randint):
+    before = np.asarray([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
+    mock_randint.side_effect = [4, 3, 2, 1]
+
+    # Mutation of the trade size
+    after = mutate_uniform(before)
+    assert before[-1] != after[-1] # Only chromosome changed
+    assert_array_equal(before[:-1], after[:-1]) # Rest remained the same
+
+    # Mutation of the take profit
+    after = mutate_uniform(before)
+    assert before[-2] != after[-2] # Only chromosome changed
+    assert_array_equal(before[:-2], after[:-2]) # Rest remained the same
+    assert before[-1] == after[-1] # Rest remained the same
+
+    # Mutation of the stop loss
+    after = mutate_uniform(before)
+    assert before[-3] != after[-3] # Only chromosome changed
+    assert_array_equal(before[:-3], after[:-3])  # Rest remained the same
+    assert_array_equal(before[-2:], after[-2:])  # Rest remained the same
+
+    # Mutation of one of the weights
+    after = mutate_uniform(before)
+    weights_before = before[:5]
+    weights_after = after[:5]
+    assert_raises(AssertionError, assert_array_equal, weights_before, weights_after) # Only chromosome changed
+    assert_array_equal(before[-5:], after[-5:])  # Rest remained the same
+
+
+
+
+
+
+    assert before.shape == after.shape
