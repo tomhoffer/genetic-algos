@@ -7,4 +7,4 @@ RUN pip install -r requirements.txt --no-cache-dir
 COPY . .
 ENV PYTHONPATH /src
 
-CMD python src/tradingbot/tradingbot.py
+CMD python src/tradingbot/main.py

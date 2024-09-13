@@ -1,33 +1,22 @@
 import logging
-import statistics
+import random
+import numpy as np
+import pandas as pd
 from dataclasses import dataclass
 from datetime import datetime
 from functools import cache
-from random import random
 from typing import List, Hashable, Dict
-
-import numpy as np
-import pandas as pd
 from dotenv import load_dotenv
-import matplotlib.pyplot as plt
-
-from src.generic.crossover import Crossover
-from src.generic.executor import TrainingExecutor
 from src.generic.model import Solution
 from src.generic.mutation import Mutation
-from src.generic.selection import Selection
-
 from src.tradingbot.config import Config
 from src.tradingbot.decisions import TradingStrategies
 from src.tradingbot.enums import Decision
 from src.tradingbot.exceptions import InvalidTradeActionException
-from src.tradingbot.hyperparams import TradingBotHyperparams
 from src.tradingbot.repository import TradingdataRepository
 
 pd.options.mode.chained_assignment = None  # Disable SettingWithCopyWarning
-backtesting = False
 trading_data_repository = TradingdataRepository()
-transaction_log: List[Dict] = []
 logging.basicConfig(level=logging.INFO)
 load_dotenv()
 
@@ -153,14 +142,13 @@ def initial_population_generator() -> List[TradingbotSolution]:
     return result
 
 
-def decide_row(row: np.array, row_np_index: Dict, solution: TradingbotSolution):
+def decide_row(row: np.array, row_np_index: Dict, solution: TradingbotSolution, transaction_log: List[Dict] = None):
     ticker_price: float = row[row_np_index[Config.get_value('TRADED_TICKER_NAME') + '_Adj Close']]
     row_datetime: str = timestamp_to_str(row[row_np_index['datetime']])
     take_profit_proportion: float = solution.parse_chromosome_take_profit()
     stop_loss_proportion: float = solution.parse_chromosome_stop_loss()
     trade_size: float = solution.parse_chromosome_trade_size()
     ts = TradingStrategies()
-    global transaction_log
 
     # If stop_loss or take_profit criteria are met
     if solution.bought_positions:
@@ -170,9 +158,9 @@ def decide_row(row: np.array, row_np_index: Dict, solution: TradingbotSolution):
                 value_proportion: float = ticker_price / position.price_at_buy
                 if value_proportion >= take_profit_proportion or value_proportion <= stop_loss_proportion:
                     profit: float = solution.sell(datetime=row_datetime, index=index)
-                    if backtesting:
+                    if transaction_log is not None:
                         transaction_log.append({'type': Decision.SELL, 'datetime': row_datetime, 'price': ticker_price,
-                                                'profit': profit})
+                                                'profit': profit, 'event': 'trigger'})
                     sold = True
                     break
             if not sold:
@@ -195,18 +183,20 @@ def decide_row(row: np.array, row_np_index: Dict, solution: TradingbotSolution):
         profit: float = solution.sell_position_with_highest_profit(datetime=row_datetime)
         result = Decision.SELL
 
-    if backtesting:
+    if transaction_log is not None:
         transaction_log.append({'type': result, 'datetime': row_datetime, 'price': ticker_price, 'profit': profit})
 
 
-def perform_fitness(start_date: str, end_date: str, chromosome: np.ndarray) -> float:
+def perform_fitness(start_date: str, end_date: str, chromosome: np.ndarray,
+                    transaction_log: List[Dict] = None) -> float:
     evaluation_df: pd.DataFrame = trading_data_repository.load_ticker_data(start_date=start_date, end_date=end_date)
     evaluation_df['datetime'] = evaluation_df.index
     row_np_index = dict(zip(evaluation_df.columns, list(range(0, len(evaluation_df.columns)))))
     evaluation_data: np.ndarray = evaluation_df.to_numpy()
     solution = TradingbotSolution(chromosome=chromosome, account_balance=Config.get_value('BUDGET'))
 
-    np.apply_along_axis(decide_row, axis=1, arr=evaluation_data, row_np_index=row_np_index, solution=solution)
+    np.apply_along_axis(decide_row, axis=1, arr=evaluation_data, row_np_index=row_np_index, solution=solution,
+                        transaction_log=transaction_log)
     # Close all trades at the end of the period to evaluate solution performance
     solution.sell_all(datetime=end_date)
     solution.fitness = solution.account_balance
@@ -217,39 +207,6 @@ def fitness(chromosome: np.ndarray) -> float:
     end_date: str = timestamp_to_str(Config.get_value("END_TIMESTAMP"))
     start_date: str = timestamp_to_str(Config.get_value("START_TIMESTAMP"))
     return perform_fitness(start_date=start_date, end_date=end_date, chromosome=chromosome)
-
-
-def backtest(winner: TradingbotSolution, plot=False,
-             start_date: str = timestamp_to_str(Config.get_value("BACKTEST_START_TIMESTAMP")),
-             end_date: str = timestamp_to_str(Config.get_value("BACKTEST_END_TIMESTAMP"))) -> float:
-    global backtesting, transaction_log
-    backtesting = True
-    transaction_log = []
-    winner_fitness = perform_fitness(start_date=start_date, end_date=end_date, chromosome=winner.chromosome)
-
-    buys = [(datetime.strptime(log['datetime'], '%Y-%m-%d'), log['price']) for log in transaction_log if
-            log['type'] == Decision.BUY]
-    sells = [(datetime.strptime(log['datetime'], '%Y-%m-%d'), log['price'], log['profit']) for log in
-             transaction_log if log['type'] == Decision.SELL]
-
-    # Plot the graph with buys and sells
-    if plot:
-        fig, ax = plt.subplots()
-        ticker_df: pd.DataFrame = trading_data_repository.load_ticker_data(start_date=start_date, end_date=end_date)
-        ax.plot(ticker_df.index, ticker_df[f"{Config.get_value('TRADED_TICKER_NAME')}_Adj Close"])
-
-        for buy, sell in zip(buys, sells):
-            plt.scatter(x=buy[0], y=buy[1], color='g')
-            plt.scatter(x=sell[0], y=sell[1], color='r')
-        plt.title(f"Resulting balance: {winner_fitness}")
-        plt.show()
-        plt.savefig("backtest.png")
-
-    # for sell in sells:
-    #    print(f"Backtest sold position with profit: {sell}")
-
-    backtesting = False
-    return winner_fitness
 
 
 def stopping_criteria_fn(solution: TradingbotSolution) -> bool:
@@ -272,86 +229,35 @@ def mutate_gaussian(chromosome: np.ndarray) -> np.ndarray:
 
 
 def mutate_uniform(chromosome: np.ndarray) -> np.ndarray:
+    if not random.random() < Config.get_value("P_MUTATION"):
+        return chromosome
+
     result = chromosome
-    probability: float = Config.get_value("P_MUTATION")
-    if random() < probability:
-        solution = TradingbotSolution(chromosome=chromosome)
-        strategy_weights: np.ndarray = solution.parse_strategy_weights()
-        take_profit_ratio: float = solution.parse_chromosome_take_profit()
-        stop_loss_ratio: float = solution.parse_chromosome_take_profit()
-        trade_size: float = solution.parse_chromosome_trade_size()
+    solution = TradingbotSolution(chromosome=chromosome)
+    strategy_weights: np.ndarray = solution.parse_strategy_weights()
+    take_profit_ratio: float = solution.parse_chromosome_take_profit()
+    stop_loss_ratio: float = solution.parse_chromosome_take_profit()
+    trade_size: float = solution.parse_chromosome_trade_size()
+    part_to_mutate: int = random.randint(1, 4)
 
-        mutated_weights: np.ndarray = Mutation.mutate_real_uniform(strategy_weights, use_abs=True, max=1.0, min=0)
-        mutated_stop_loss: np.ndarray = Mutation.mutate_real_uniform(np.asarray([stop_loss_ratio]), use_abs=True,
-                                                                     max=1.0,
-                                                                     min=0)
-        mutated_take_profit: np.ndarray = Mutation.mutate_real_uniform(np.asarray([take_profit_ratio]), use_abs=True,
-                                                                       max=2,
-                                                                       min=1)
-        mutated_trade_size: np.ndarray = Mutation.mutate_real_uniform(np.asarray([trade_size]), use_abs=True, max=100,
-                                                                      min=1)
-        result = np.concatenate((mutated_weights, mutated_take_profit, mutated_stop_loss, mutated_trade_size))
+    if part_to_mutate == 1:
+        mutated_weights = Mutation.mutate_real_uniform(strategy_weights, use_abs=True, max=1.0, min=0, force=True)
+        result = np.concatenate((mutated_weights, [take_profit_ratio], [stop_loss_ratio], [trade_size]))
+
+    elif part_to_mutate == 2:
+        mutated_take_profit_ratio = Mutation.mutate_real_uniform(np.asarray([take_profit_ratio]), use_abs=True,
+                                                                 max=1.0, min=0, force=True)
+        result = np.concatenate((strategy_weights, mutated_take_profit_ratio, [stop_loss_ratio], [trade_size]))
+
+    elif part_to_mutate == 3:
+
+        mutated_stop_loss_ratio = Mutation.mutate_real_uniform(np.asarray([stop_loss_ratio]), use_abs=True, max=1.0,
+                                                               min=0, force=True)
+        result = np.concatenate((strategy_weights, [take_profit_ratio], mutated_stop_loss_ratio, [trade_size]))
+
+    elif part_to_mutate == 4:
+        mutated_trade_size = Mutation.mutate_real_uniform(np.asarray([trade_size]), use_abs=True, max=1.0, min=0,
+                                                          force=True)
+        result = np.concatenate((strategy_weights, [take_profit_ratio], [stop_loss_ratio], mutated_trade_size))
+
     return np.around(result, decimals=2)
-
-
-if __name__ == "__main__":
-
-    params = TradingBotHyperparams(crossover_fn=Crossover.two_point,
-                                   initial_population_generator_fn=initial_population_generator,
-                                   mutation_fn=mutate_uniform,
-                                   selection_fn=Selection.tournament,
-                                   fitness_fn=fitness, population_size=Config.get_value("POPULATION_SIZE"), elitism=1,
-                                   stopping_criteria_fn=stopping_criteria_fn,
-                                   chromosome_validator_fn=chromosome_validator_fn)
-
-    print(
-        f"Training on period: {timestamp_to_str(Config.get_value('START_TIMESTAMP'))} - {timestamp_to_str(Config.get_value('END_TIMESTAMP'))}")
-
-    winners, _, _ = TrainingExecutor.run_parallel(params, return_global_winner=True, return_all_winners=True, n_runs=1)
-
-    backtest_winner = TradingbotSolution(chromosome=np.empty(0))
-    backtest_winner.fitness = -np.inf
-    backtest_results = []
-    for winner in winners:
-        backtest_fitness: float = backtest(winner)
-        backtest_results.append(backtest_fitness)
-        if backtest_fitness > backtest_winner.fitness:
-            backtest_winner = TradingbotSolution(chromosome=winner.chromosome)
-            backtest_winner.fitness = backtest_fitness
-    print(f"Mean backtest fitness: {statistics.fmean(backtest_results)}")
-    print(f"Stdev backtest fitness: {statistics.stdev(backtest_results)}")
-    print(
-        f"Found winner with weights {[el for el in zip(get_trading_strategy_method_names(), backtest_winner.chromosome)]} and resulting account balance {backtest_winner.fitness}")
-    print("Stop loss: ", backtest_winner.parse_chromosome_stop_loss())
-    print("Take profit: ", backtest_winner.parse_chromosome_take_profit())
-    print("Trade size: ", backtest_winner.parse_chromosome_trade_size())
-
-    backtesting_periods = [("2022-01-01", "2023-01-01"), ("2023-01-01", "2024-01-01"), ("2024-01-01", "2024-08-28")]
-
-    for backtesting_period in backtesting_periods:
-        result: float = backtest(backtest_winner, plot=True, start_date=backtesting_period[0],
-                                 end_date=backtesting_period[1])
-        print(f"Backtest over {backtesting_period[0]} - {backtesting_period[1]}: {result}")
-
-    # backtest_winner.serialize_to_file('storage/weights.csv')
-
-    # winners, _, _ = TrainingExecutor.run((params, 1), return_global_winner=True)
-
-    """
-    # selection_methods = [Selection.tournament, Selection.roulette, Selection.rank]
-    selection_methods = [Selection.tournament]
-    # crossover_methods = [Crossover.two_point, Crossover.single_point, Crossover.uniform]
-    crossover_methods = [Crossover.two_point]
-    mutation_methods = [mutate_uniform]
-    population_sizes = [100, 200, 500, 750]
-    elitism_values = [1, 5, 10, 50]
-
-    evaluator = TradingBotHyperparamEvaluator(selection_method=selection_methods, mutation_method=mutation_methods,
-                                              crossover_method=crossover_methods, population_size=population_sizes,
-                                              fitness_fn=fitness,
-                                              initial_population_generation_fn=initial_population_generator,
-                                              elitism_value=elitism_values, stopping_criteria_fn=stopping_criteria_fn,
-                                              chromosome_validator_fn=chromosome_validator_fn)
-
-    evaluator.grid_search_parallel(return_global_winner=True)
-    """
