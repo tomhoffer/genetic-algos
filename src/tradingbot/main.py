@@ -1,5 +1,3 @@
-import statistics
-
 import numpy as np
 
 from src.generic.crossover import Crossover
@@ -26,21 +24,27 @@ if __name__ == "__main__":
 
     winners, _, _ = TrainingExecutor.run_parallel(params, return_global_winner=True, return_all_winners=True, n_runs=80)
 
-    winner = TradingbotSolution(chromosome=np.empty(0))
-    winner.fitness = -np.inf
+    winner = None
+    winner_profit_ratio = -np.inf
 
     for w in winners:
-        if w.fitness > winner.fitness:
+        backtest_executor = BacktestExecutor()
+        backtest_executor.backtest(w, start_date=timestamp_to_str(Config.get_value('START_TIMESTAMP')),
+                                   end_date=timestamp_to_str(Config.get_value('END_TIMESTAMP')))
+        profit_ratio = backtest_executor.compute_profit_ratio()
+
+        if profit_ratio > winner_profit_ratio:
             winner = TradingbotSolution(chromosome=w.chromosome)
             winner.fitness = w.fitness
+            winner_profit_ratio = profit_ratio
     print(
-        f"Found winner with weights {[el for el in zip(get_trading_strategy_method_names(), winner.chromosome)]} and resulting account balance {winner.fitness}")
+        f"Found winner with weights {[el for el in zip(get_trading_strategy_method_names(), winner.chromosome)]}, resulting account balance {winner.fitness} and payoff ratio {winner_profit_ratio}")
 
     backtesting_periods = [("2022-01-01", "2023-01-01"), ("2023-01-01", "2024-01-01"), ("2024-01-01", "2024-08-28")]
 
     for backtesting_period in backtesting_periods:
         result: float = BacktestExecutor().backtest(winner, plot=True, start_date=backtesting_period[0],
-                                                    end_date=backtesting_period[1])
+                                                    end_date=backtesting_period[1], print_results=True)
 
     # backtest_winner.serialize_to_file('storage/weights.csv')
 
