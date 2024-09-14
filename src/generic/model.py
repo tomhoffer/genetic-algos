@@ -158,13 +158,16 @@ class Population(PopulationBase):
         if Config.get_value('USE_REDIS_FITNESS_CACHE'):
             chromosomes_hashed: List[str] = [hash_chromosome(member.chromosome) for member in self.members]
             cached_results = redis_conn.mget(chromosomes_hashed)
+            redis_updates = {}
 
-            for individual, cached_result in zip(self.members, cached_results):
+            for individual, hashed_chromosome, cached_result in zip(self.members, chromosomes_hashed, cached_results):
                 if cached_result is None:
                     individual.fitness = self.hyperparams.fitness_fn(individual.chromosome)
-                    redis_conn.set(hash_chromosome(individual.chromosome), str(individual.fitness))
+                    redis_updates[hashed_chromosome] = str(individual.fitness)  # Store in dictionary for batch update
                 else:
                     individual.fitness = float(cached_result)
+            if redis_updates:
+                redis_conn.mset(redis_updates)
 
         else:
             for individual in self.members:
