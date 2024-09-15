@@ -22,7 +22,7 @@ def test_all_zero_fitness(population_with_zero_fitness):
 
 @mockenv(ELITISM="0")
 def test_all_ninf_fitness(population_with_ninf_fitness):
-    # Selection works even when all Solutions have fitness == np.NINF
+    # Selection works even when all Solutions have fitness == -np.inf
     result: List[Solution] = Selection.rank(population=population_with_ninf_fitness)
     assert len(result) == len(population_with_ninf_fitness)
     assert result == population_with_ninf_fitness

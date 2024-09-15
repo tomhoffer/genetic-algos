@@ -95,8 +95,8 @@ def test_fitness_single(mocker):
     np.testing.assert_almost_equal(fitness(np.asarray([[1, 10, 0]])), 1, decimal=5)  # Decreasing value
     np.testing.assert_almost_equal(fitness(np.asarray([[2, 10, 0]])), 10, decimal=5)  # Constant value
     np.testing.assert_almost_equal(fitness(np.asarray([[3, 10, 0]])), 100, decimal=5)  # Missing in between
-    np.testing.assert_almost_equal(fitness(np.asarray([[4, 10, 0]])), np.NINF, decimal=5)  # Missing at end
-    np.testing.assert_almost_equal(fitness(np.asarray([[5, 10, 0]])), np.NINF, decimal=5)  # Missing at start
+    np.testing.assert_almost_equal(fitness(np.asarray([[4, 10, 0]])), -np.inf, decimal=5)  # Missing at end
+    np.testing.assert_almost_equal(fitness(np.asarray([[5, 10, 0]])), -np.inf, decimal=5)  # Missing at start
 
 
 @mockenv(END_TIMESTAMP="792000", BUDGET="10")  # 1970-01-10
@@ -141,7 +141,7 @@ def test_fitness_missing_column(mocker):
     # Investing all budget on given ticker on the first date (all-in)
     chromosome = np.asarray([[1, 10, 0]])
     result = fitness(chromosome)
-    np.testing.assert_almost_equal(result, np.NINF, decimal=5)
+    np.testing.assert_almost_equal(result, -np.inf, decimal=5)
 
 
 @mockenv(END_TIMESTAMP="792000", BUDGET="10")  # 1970-01-10

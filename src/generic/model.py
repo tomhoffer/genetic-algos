@@ -196,7 +196,7 @@ class Population(PopulationBase):
         :return: Tuple [winner, fitness]
         """
 
-        max_fitness = np.NINF
+        max_fitness = -np.inf
         winner = self.members[0]
         for el in self.members:
             if el.fitness > max_fitness:

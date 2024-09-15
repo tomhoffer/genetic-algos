@@ -1,11 +1,10 @@
 import os
-from typing import Callable
 from unittest import mock
 
 import numpy as np
 import pytest
 
-from src.generic.model import Population, Solution, Hyperparams
+from src.generic.model import Solution, Hyperparams
 
 
 def mockenv(**envvars):
@@ -39,7 +38,7 @@ def population_with_zero_fitness():
 
 @pytest.fixture
 def population_with_ninf_fitness():
-    return [Solution(np.asarray([0, 0, 0]), fitness=np.NINF) for _ in range(10)]
+    return [Solution(np.asarray([0, 0, 0]), fitness=-np.inf) for _ in range(10)]
 
 
 @pytest.fixture

@@ -14,7 +14,7 @@ class Selection:
     @validate_population_length
     def tournament(population: List[Solution], tournament_size=3) -> List[Solution]:
 
-        if all(el.fitness == np.NINF for el in population):
+        if all(el.fitness == -np.inf for el in population):
             logging.debug(
                 "Population chosen for selection has all fitness values equal to negative inf. Returning original population...")
             return copy.deepcopy(population)
@@ -32,7 +32,7 @@ class Selection:
 
         for _ in range(members_to_select):
             picked: List[Solution] = random.choices(population, k=tournament_size)
-            max_fitness = np.NINF
+            max_fitness = -np.inf
             winner = picked[0]
             for el in picked:
                 if el.fitness > max_fitness:
@@ -49,7 +49,7 @@ class Selection:
         logging.debug("Performing roulette wheel selection from population: %s", population)
         sum_fitness = sum(el.fitness for el in population)
 
-        if sum_fitness == np.NINF:
+        if sum_fitness == -np.inf:
             logging.error(
                 "Roulette selection was not possible, all fitness are negative inf. Returning parent population...")
             return copy.deepcopy(population)
@@ -81,7 +81,7 @@ class Selection:
     def rank(population: List[Solution]) -> List[Solution]:
         logging.debug("Performing rank-based selection from population: %s", population)
 
-        if all(el.fitness == np.NINF for el in population):
+        if all(el.fitness == -np.inf for el in population):
             logging.debug(
                 "Rank-based selection was not possible, all fitness are negative inf. Returning parent population...")
             return copy.deepcopy(population)

@@ -171,7 +171,7 @@ def decide_row(row: np.array, row_np_index: Dict, solution: TradingbotSolution, 
     decisions_sum = np.sum(np.multiply(solution.parse_strategy_weights(), decisions))
 
     result = Decision.INCONCLUSIVE
-    profit = np.NINF
+    profit = -np.inf
     if decisions_sum > 0:
         # Buy based on confidence
         trade_size_adjusted = trade_size * (1 + decisions_sum)

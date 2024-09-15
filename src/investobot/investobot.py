@@ -137,7 +137,7 @@ def fitness(chromosome: np.ndarray) -> float:
 
     if np.isnan(res):
         # If market data is missing for any of given chromosomes
-        return np.NINF
+        return -np.inf
     return res
 
 
