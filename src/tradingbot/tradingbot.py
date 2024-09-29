@@ -77,7 +77,7 @@ class TradingbotSolution(Solution):
         value_at_sell: float = (ticker_value_at_sell / sold_position.price_at_buy * sold_position.amount)
         self.account_balance += value_at_sell
         logging.debug("Selling with profit of %s on date %s", value_at_sell, datetime)
-        profit = (ticker_value_at_sell * sold_position.amount) - (sold_position.price_at_buy * sold_position.amount)
+        profit = ((ticker_value_at_sell / sold_position.price_at_buy) - 1) * sold_position.amount
         l = TradeLogger()
         l.log_sell_position(datetime=datetime, price=value_at_sell, profit=profit, trigger=trigger,
                             account_status_after_transaction=self.account_balance)
