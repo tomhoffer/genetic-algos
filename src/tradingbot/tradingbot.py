@@ -9,9 +9,10 @@ from typing import List, Hashable, Dict
 from dotenv import load_dotenv
 from src.generic.model import Solution
 from src.generic.mutation import Mutation
+from src.tradingbot.enums import SellTrigger
+from src.tradingbot.trade_logger import TradeLogger
 from src.tradingbot.config import Config
 from src.tradingbot.decisions import TradingStrategies
-from src.tradingbot.enums import Decision
 from src.tradingbot.exceptions import InvalidTradeActionException
 from src.tradingbot.repository import TradingdataRepository
 
@@ -51,9 +52,11 @@ class TradingbotSolution(Solution):
 
         self.bought_positions.append(BuyPosition(datetime=datetime, amount=amount_to_buy, price_at_buy=price))
         self.account_balance -= amount_to_buy
+        trade_logger = TradeLogger()
+        trade_logger.log_buy_position(datetime=datetime, price=price)
         logging.debug("Buying for %sUSD on date %s with price %s", amount, datetime, price)
 
-    def sell(self, datetime: str, index: int) -> float:
+    def sell(self, datetime: str, index: int, trigger: SellTrigger = SellTrigger.SHORT) -> float:
         """
         :param datetime: Datetime of sell action
         :param index: Index in the BuyPosition.bought_positions list
@@ -72,7 +75,10 @@ class TradingbotSolution(Solution):
         value_at_sell: float = (ticker_value_at_sell / sold_position.price_at_buy * sold_position.amount)
         self.account_balance += value_at_sell
         logging.debug("Selling with profit of %s on date %s", value_at_sell, datetime)
-        return value_at_sell - sold_position.price_at_buy
+        profit = (ticker_value_at_sell * sold_position.amount) - (sold_position.price_at_buy * sold_position.amount)
+        l = TradeLogger()
+        l.log_sell_position(datetime=datetime, price=value_at_sell, profit=profit, trigger=trigger)
+        return profit
 
     def sell_all(self, datetime: str):
         if len(self.bought_positions) == 0:
@@ -88,7 +94,8 @@ class TradingbotSolution(Solution):
         if len(self.bought_positions) == 0:
             return
         cheapest_buy_position: BuyPosition = min(self.bought_positions, key=lambda x: x.price_at_buy)
-        profit: float = self.sell(datetime=datetime, index=self.bought_positions.index(cheapest_buy_position))
+        profit: float = self.sell(datetime=datetime, index=self.bought_positions.index(cheapest_buy_position),
+                                  trigger=SellTrigger.SHORT)
         return profit
 
     def parse_chromosome_trade_size(self) -> float:
@@ -142,13 +149,14 @@ def initial_population_generator() -> List[TradingbotSolution]:
     return result
 
 
-def decide_row(row: np.array, row_np_index: Dict, solution: TradingbotSolution, transaction_log: List[Dict] = None):
+def decide_row(row: np.array, row_np_index: Dict, solution: TradingbotSolution):
     ticker_price: float = row[row_np_index[Config.get_value('TRADED_TICKER_NAME') + '_Adj Close']]
     row_datetime: str = timestamp_to_str(row[row_np_index['datetime']])
     take_profit_proportion: float = solution.parse_chromosome_take_profit()
     stop_loss_proportion: float = solution.parse_chromosome_stop_loss()
     trade_size: float = solution.parse_chromosome_trade_size()
     ts = TradingStrategies()
+    trade_logger = TradeLogger()
 
     # If stop_loss or take_profit criteria are met
     if solution.bought_positions:
@@ -156,11 +164,12 @@ def decide_row(row: np.array, row_np_index: Dict, solution: TradingbotSolution, 
             sold = False
             for index, position in enumerate(solution.bought_positions):
                 value_proportion: float = ticker_price / position.price_at_buy
-                if value_proportion >= take_profit_proportion or value_proportion <= stop_loss_proportion:
-                    profit: float = solution.sell(datetime=row_datetime, index=index)
-                    if transaction_log is not None:
-                        transaction_log.append({'type': Decision.SELL, 'datetime': row_datetime, 'price': ticker_price,
-                                                'profit': profit, 'event': 'trigger'})
+                if value_proportion >= take_profit_proportion:
+                    solution.sell(datetime=row_datetime, index=index, trigger=SellTrigger.TAKE_PROFIT)
+                    sold = True
+                    break
+                elif value_proportion <= stop_loss_proportion:
+                    solution.sell(datetime=row_datetime, index=index, trigger=SellTrigger.STOP_LOSS)
                     sold = True
                     break
             if not sold:
@@ -183,22 +192,19 @@ def decide_row(row: np.array, row_np_index: Dict, solution: TradingbotSolution, 
         profit: float = solution.sell_position_with_highest_profit(datetime=row_datetime)
         result = Decision.SELL
 
-    if transaction_log is not None:
-        transaction_log.append({'type': result, 'datetime': row_datetime, 'price': ticker_price, 'profit': profit})
 
 
-def perform_fitness(start_date: str, end_date: str, chromosome: np.ndarray,
-                    transaction_log: List[Dict] = None) -> float:
+def perform_fitness(start_date: str, end_date: str, chromosome: np.ndarray) -> float:
     evaluation_df: pd.DataFrame = trading_data_repository.load_ticker_data(start_date=start_date, end_date=end_date)
     evaluation_df['datetime'] = evaluation_df.index
     row_np_index = dict(zip(evaluation_df.columns, list(range(0, len(evaluation_df.columns)))))
     evaluation_data: np.ndarray = evaluation_df.to_numpy()
     solution = TradingbotSolution(chromosome=chromosome, account_balance=Config.get_value('BUDGET'))
 
-    np.apply_along_axis(decide_row, axis=1, arr=evaluation_data, row_np_index=row_np_index, solution=solution,
-                        transaction_log=transaction_log)
+    np.apply_along_axis(decide_row, axis=1, arr=evaluation_data, row_np_index=row_np_index, solution=solution)
     # Close all trades at the end of the period to evaluate solution performance
     solution.sell_all(datetime=end_date)
+
     solution.fitness = solution.account_balance
     return solution.fitness
 
