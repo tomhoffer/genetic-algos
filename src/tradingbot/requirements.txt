@@ -91,3 +91,4 @@ tzdata==2023.3
 urllib3==1.26.12
 wandb==0.17.6
 wcwidth==0.2.6
+termplotlib==0.3.9
