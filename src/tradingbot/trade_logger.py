@@ -20,28 +20,22 @@ class SingletonMeta(type):
 
 class TradeLogger(metaclass=SingletonMeta):
     trading_log: List[Dict] = []
+    account_status_history: List[float] = []
     enabled = False
 
-    def log_buy_position(self, datetime: str, price: float):
+    def log_buy_position(self, datetime: str, price: float, account_status_after_transaction: float):
         if self.enabled:
             self.trading_log.append({"datetime": datetime, "price": price, "type": Decision.BUY})
 
-    def log_sell_position(self, datetime: str, price: float, profit: float, trigger: SellTrigger = SellTrigger.SHORT):
+    def log_sell_position(self, datetime: str, price: float, profit: float, account_status_after_transaction: float,
+                          trigger: SellTrigger = SellTrigger.SHORT):
         if self.enabled:
             self.trading_log.append(
                 {"datetime": datetime, "price": price, "type": Decision.SELL, "trigger": trigger, "profit": profit})
 
-    def log_stop_loss_position(self, datetime: str, price: float, profit: float):
+    def log_account_status(self, balance: float):
         if self.enabled:
-            self.trading_log.append(
-                {"datetime": datetime, "price": price, "type": Decision.SELL, "trigger": SellTrigger.STOP_LOSS,
-                 "profit": profit})
-
-    def log_take_profit_position(self, datetime: str, price: float, profit: float):
-        if self.enabled:
-            self.trading_log.append(
-                {"datetime": datetime, "price": price, "type": Decision.SELL, "trigger": SellTrigger.TAKE_PROFIT,
-                 "profit": profit})
+            self.account_status_history.append(balance)
 
     def get_log_count(self):
         return len(self.trading_log)
@@ -81,3 +75,4 @@ class TradeLogger(metaclass=SingletonMeta):
 
     def reset(self):
         self.trading_log = []
+        self.account_status_history = []

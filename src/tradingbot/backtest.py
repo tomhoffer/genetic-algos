@@ -1,5 +1,8 @@
 from datetime import datetime
+from typing import List
 
+import numpy as np
+import termplotlib as tpl
 import pandas as pd
 from matplotlib import pyplot as plt
 from numpy import inf
@@ -43,6 +46,12 @@ class BacktestExecutor:
     def get_largest_loosing_trade(self) -> float:
         return min([el['profit'] for el in self.trade_logger.get_all_loosing_sells()])
 
+    def _plot_terminal(self, x: np.ndarray | List[float], y: np.ndarray | List[float], label="data", width=50,
+                       height=15):
+        fig = tpl.figure()
+        fig.plot(x=x, y=y, label=label, width=width, height=height)
+        fig.show()
+
     def backtest(self, winner: TradingbotSolution, plot=False, print_results=False,
                  start_date: str = timestamp_to_str(Config.get_value("BACKTEST_START_TIMESTAMP")),
                  end_date: str = timestamp_to_str(Config.get_value("BACKTEST_END_TIMESTAMP"))) -> float:
@@ -85,5 +94,7 @@ class BacktestExecutor:
             print("Profit ratio (> 1.75): ", self.compute_profit_ratio())
             print("Largest profitable trade: ", self.get_largest_profitable_trade())
             print("Largest loosing trade: ", self.get_largest_loosing_trade())
+            self._plot_terminal(x=np.arange(len(self.trade_logger.account_status_history)),
+                                y=self.trade_logger.account_status_history, label="Account history")
 
         return winner_fitness

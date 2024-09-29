@@ -1,5 +1,6 @@
 FROM python:3.11.3
-
+RUN apt-get update -y
+RUN apt-get install -y gnuplot
 RUN mkdir /src
 WORKDIR /src
 COPY requirements.txt .

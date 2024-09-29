@@ -54,7 +54,8 @@ class TradingbotSolution(Solution):
         self.bought_positions.append(BuyPosition(datetime=datetime, amount=amount_to_buy, price_at_buy=price))
         self.account_balance -= amount_to_buy
         trade_logger = TradeLogger()
-        trade_logger.log_buy_position(datetime=datetime, price=price)
+        trade_logger.log_buy_position(datetime=datetime, price=price,
+                                      account_status_after_transaction=self.account_balance)
         logging.debug("Buying for %sUSD on date %s with price %s", amount, datetime, price)
 
     def sell(self, datetime: str, index: int, trigger: SellTrigger = SellTrigger.SHORT) -> float:
@@ -78,7 +79,8 @@ class TradingbotSolution(Solution):
         logging.debug("Selling with profit of %s on date %s", value_at_sell, datetime)
         profit = (ticker_value_at_sell * sold_position.amount) - (sold_position.price_at_buy * sold_position.amount)
         l = TradeLogger()
-        l.log_sell_position(datetime=datetime, price=value_at_sell, profit=profit, trigger=trigger)
+        l.log_sell_position(datetime=datetime, price=value_at_sell, profit=profit, trigger=trigger,
+                            account_status_after_transaction=self.account_balance)
         return profit
 
     def sell_all(self, datetime: str):
@@ -198,6 +200,7 @@ def decide_row(row: np.array, row_np_index: Dict, solution: TradingbotSolution):
         # Sell position with the highest profit
         # solution.sell(datetime=row_datetime, index=0)
         solution.sell_position_with_highest_profit(datetime=row_datetime)
+    trade_logger.log_account_status(solution.account_balance)
 
 
 def perform_fitness(start_date: str, end_date: str, chromosome: np.ndarray) -> float:
