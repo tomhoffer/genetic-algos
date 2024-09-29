@@ -32,6 +32,7 @@ class Config:
     POSTGRES_HOST: str
     POSTGRES_PORT: int
     POSTGRES_DB: str
+    ALLOW_BUDGET_EXCEED: bool
 
     """
     Map environment variables to class fields according to these rules:

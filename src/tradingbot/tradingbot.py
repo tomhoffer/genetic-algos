@@ -43,12 +43,13 @@ class TradingbotSolution(Solution):
 
     def buy(self, datetime: str, amount: float, price: float):
 
-        if self.account_balance == 0:
-            return
-
         amount_to_buy = amount
-        if 0 < self.account_balance < amount:
-            amount_to_buy = self.account_balance
+        if not Config.get_value("ALLOW_BUDGET_EXCEED"):
+            if self.account_balance == 0:
+                return
+
+            if 0 < self.account_balance < amount:
+                amount_to_buy = self.account_balance
 
         self.bought_positions.append(BuyPosition(datetime=datetime, amount=amount_to_buy, price_at_buy=price))
         self.account_balance -= amount_to_buy
