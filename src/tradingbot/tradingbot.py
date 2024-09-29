@@ -239,8 +239,8 @@ def chromosome_validator_fn(solution: TradingbotSolution) -> bool:
     return np.all((strategy_weights >= 0) & (strategy_weights <= 1)) and \
         (1 <= take_profit_ratio <= 2) and \
         (0 <= stop_loss_ratio < 1) and (0 < trade_size) and (
-                Config.get_value('MIN_SELL_THRESHOLD') < sell_threshold <= 0) and (
-                0 <= buy_threshold < Config.get_value('MAX_BUY_THRESHOLD'))
+                Config.get_value('MIN_SELL_THRESHOLD') <= sell_threshold <= 0) and (
+                0 <= buy_threshold <= Config.get_value('MAX_BUY_THRESHOLD'))
 
 
 def mutate_gaussian(chromosome: np.ndarray) -> np.ndarray:
