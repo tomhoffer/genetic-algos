@@ -32,6 +32,8 @@ class Config:
     POSTGRES_HOST: str
     POSTGRES_PORT: int
     POSTGRES_DB: str
+    MIN_SELL_THRESHOLD: float
+    MAX_BUY_THRESHOLD: float
     ALLOW_BUDGET_EXCEED: bool
 
     """

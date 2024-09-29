@@ -82,7 +82,7 @@ def test_take_profit(mocker, trading_df):
     mocker.patch('src.tradingbot.decisions.TradingStrategies.perform_decisions_for_row',
                  side_effect=[{"dummy_strategy": Decision.BUY if i == 0 else Decision.INCONCLUSIVE} for i in range(10)])
 
-    chromosome = np.asarray([1.0, 1.2, 1.0, 10])  # Take profit set at 120%
+    chromosome = np.asarray([1.0, 0, 0, 1.2, 1.0, 10])  # Take profit set at 120%
     result = fitness(chromosome)
     np.testing.assert_almost_equal(result, 12, decimal=2)
 
@@ -94,7 +94,7 @@ def test_take_profit_multiple(mocker, trading_df):
     mocker.patch('src.tradingbot.decisions.TradingStrategies.perform_decisions_for_row',
                  side_effect=[{"dummy_strategy": Decision.BUY if i <= 1 else Decision.INCONCLUSIVE} for i in range(10)])
 
-    chromosome = np.asarray([1.0, 1.2, 1.0, 10])  # Take profit set at 120%
+    chromosome = np.asarray([1.0, 0, 0, 1.2, 1.0, 10])  # Take profit set at 120%
     result = fitness(chromosome)
     np.testing.assert_almost_equal(result, 24, decimal=2)
 
@@ -107,7 +107,7 @@ def test_stop_loss(mocker, trading_df):
                  side_effect=[{"dummy_strategy": Decision.BUY if i == 0 else Decision.INCONCLUSIVE} for i in range(10)])
 
     # Single position hits stop loss
-    chromosome = np.asarray([1.0, 2.0, 0.8, 10])  # Stop loss set at 80%
+    chromosome = np.asarray([1.0, 0, 0, 1.0, 0.8, 10])  # Stop loss set at 80%
     result = fitness(chromosome)
     np.testing.assert_almost_equal(result, 8, decimal=2)
 
@@ -119,7 +119,7 @@ def test_stop_loss_multiple(mocker, trading_df):
     mocker.patch('src.tradingbot.decisions.TradingStrategies.perform_decisions_for_row',
                  side_effect=[{"dummy_strategy": Decision.BUY if i <= 1 else Decision.INCONCLUSIVE} for i in range(10)])
 
-    chromosome = np.asarray([1.0, 2.0, 0.8, 10])  # Stop loss set at 80%, Trade size = 10
+    chromosome = np.asarray([1.0, 0, 0, 2.0, 0.8, 10])  # Stop loss set at 80%, Trade size = 10
     result = fitness(chromosome)
     np.testing.assert_almost_equal(result, 16, decimal=2)
 
@@ -164,7 +164,7 @@ def test_tradingbotsolution_fitness(mocker, trading_df):
     # Date range = 1970-01-01 -> 1970-01-10
     # Stop loss and take profit are intentionally suppressed in this test
     mocker.patch('src.tradingbot.repository.TradingdataRepository.load_ticker_data', return_value=trading_df)
-    chromosome = np.asarray([1.0, 1000.0, 0, 10])
+    chromosome = np.asarray([1.0, 0, 0, 1000.0, 0, 10])
 
     # Decisions: Buy gradually every day, sell everything at the end
     mocker.patch('src.tradingbot.decisions.TradingStrategies.perform_decisions_for_row',
@@ -190,6 +190,7 @@ def test_tradingbotsolution_fitness(mocker, trading_df):
     result: float = fitness(chromosome)
     np.testing.assert_almost_equal(result, 328.33, decimal=2)
 
+
 @patch('random.randint')
 @mockenv(P_MUTATION="1.0", USE_REDIS_FITNESS_CACHE="False")
 def test_mutate_uniform_mutates_exactly_1_chromosome(mock_randint):
@@ -198,18 +199,18 @@ def test_mutate_uniform_mutates_exactly_1_chromosome(mock_randint):
 
     # Mutation of the trade size
     after = mutate_uniform(before)
-    assert before[-1] != after[-1] # Only chromosome changed
-    assert_array_equal(before[:-1], after[:-1]) # Rest remained the same
+    assert before[-1] != after[-1]  # Only chromosome changed
+    assert_array_equal(before[:-1], after[:-1])  # Rest remained the same
 
     # Mutation of the take profit
     after = mutate_uniform(before)
-    assert before[-2] != after[-2] # Only chromosome changed
-    assert_array_equal(before[:-2], after[:-2]) # Rest remained the same
-    assert before[-1] == after[-1] # Rest remained the same
+    assert before[-2] != after[-2]  # Only chromosome changed
+    assert_array_equal(before[:-2], after[:-2])  # Rest remained the same
+    assert before[-1] == after[-1]  # Rest remained the same
 
     # Mutation of the stop loss
     after = mutate_uniform(before)
-    assert before[-3] != after[-3] # Only chromosome changed
+    assert before[-3] != after[-3]  # Only chromosome changed
     assert_array_equal(before[:-3], after[:-3])  # Rest remained the same
     assert_array_equal(before[-2:], after[-2:])  # Rest remained the same
 
@@ -217,12 +218,7 @@ def test_mutate_uniform_mutates_exactly_1_chromosome(mock_randint):
     after = mutate_uniform(before)
     weights_before = before[:5]
     weights_after = after[:5]
-    assert_raises(AssertionError, assert_array_equal, weights_before, weights_after) # Only chromosome changed
+    assert_raises(AssertionError, assert_array_equal, weights_before, weights_after)  # Only chromosome changed
     assert_array_equal(before[-5:], after[-5:])  # Rest remained the same
-
-
-
-
-
 
     assert before.shape == after.shape

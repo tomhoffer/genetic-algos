@@ -108,8 +108,14 @@ class TradingbotSolution(Solution):
     def parse_chromosome_take_profit(self) -> float:
         return self.chromosome[-3]
 
+    def parse_sell_threshold(self) -> float:
+        return self.chromosome[-4]
+
+    def parse_buy_threshold(self) -> float:
+        return self.chromosome[-5]
+
     def parse_strategy_weights(self) -> np.ndarray:
-        return self.chromosome[:-3]
+        return self.chromosome[:-5]
 
     def serialize_to_file(self, path: str):
         trading_strategy_names: List[str] = get_trading_strategy_method_names()
@@ -144,7 +150,11 @@ def initial_population_generator() -> List[TradingbotSolution]:
         take_profit_ratio: float = rng.uniform(low=1, high=2)
         stop_loss_ratio: float = rng.uniform(low=0, high=0.99)
         trade_size: float = rng.uniform(low=10, high=100)
-        chromosome: np.ndarray = np.append(strategy_weights, [take_profit_ratio, stop_loss_ratio, trade_size])
+        buy_threshold: float = rng.uniform(low=0, high=Config.get_value('MAX_BUY_THRESHOLD'))
+        sell_threshold: float = rng.uniform(low=Config.get_value('MIN_SELL_THRESHOLD'), high=0)
+        chromosome: np.ndarray = np.append(strategy_weights,
+                                           [buy_threshold, sell_threshold, take_profit_ratio, stop_loss_ratio,
+                                            trade_size])
         result.append(TradingbotSolution(np.around(chromosome, decimals=2)))
         logging.debug("Generated random individual with chromosome %s", chromosome)
     return result
@@ -180,19 +190,14 @@ def decide_row(row: np.array, row_np_index: Dict, solution: TradingbotSolution):
     decisions: np.array = np.array(list(ts.perform_decisions_for_row(row, row_np_index).values()))
     decisions_sum = np.sum(np.multiply(solution.parse_strategy_weights(), decisions))
 
-    result = Decision.INCONCLUSIVE
-    profit = -np.inf
-    if decisions_sum > 0:
+    if decisions_sum > solution.parse_buy_threshold():
         # Buy based on confidence
         trade_size_adjusted = trade_size * (1 + decisions_sum)
         solution.buy(datetime=row_datetime, amount=trade_size_adjusted, price=ticker_price)
-        result = Decision.BUY
-    elif decisions_sum < 0:
+    elif decisions_sum < solution.parse_sell_threshold():
         # Sell position with the highest profit
         # solution.sell(datetime=row_datetime, index=0)
-        profit: float = solution.sell_position_with_highest_profit(datetime=row_datetime)
-        result = Decision.SELL
-
+        solution.sell_position_with_highest_profit(datetime=row_datetime)
 
 
 def perform_fitness(start_date: str, end_date: str, chromosome: np.ndarray) -> float:
@@ -226,9 +231,13 @@ def chromosome_validator_fn(solution: TradingbotSolution) -> bool:
     take_profit_ratio: float = solution.parse_chromosome_take_profit()
     stop_loss_ratio: float = solution.parse_chromosome_stop_loss()
     trade_size: float = solution.parse_chromosome_trade_size()
+    buy_threshold: float = solution.parse_buy_threshold()
+    sell_threshold: float = solution.parse_sell_threshold()
     return np.all((strategy_weights >= 0) & (strategy_weights <= 1)) and \
         (1 <= take_profit_ratio <= 2) and \
-        (0 <= stop_loss_ratio < 1) and (0 < trade_size)
+        (0 <= stop_loss_ratio < 1) and (0 < trade_size) and (
+                Config.get_value('MIN_SELL_THRESHOLD') < sell_threshold <= 0) and (
+                0 <= buy_threshold < Config.get_value('MAX_BUY_THRESHOLD'))
 
 
 def mutate_gaussian(chromosome: np.ndarray) -> np.ndarray:
@@ -245,26 +254,45 @@ def mutate_uniform(chromosome: np.ndarray) -> np.ndarray:
     take_profit_ratio: float = solution.parse_chromosome_take_profit()
     stop_loss_ratio: float = solution.parse_chromosome_take_profit()
     trade_size: float = solution.parse_chromosome_trade_size()
-    part_to_mutate: int = random.randint(1, 4)
+    buy_threshold: float = solution.parse_buy_threshold()
+    sell_threshold: float = solution.parse_sell_threshold()
+    part_to_mutate: int = random.randint(1, 6)
 
     if part_to_mutate == 1:
         mutated_weights = Mutation.mutate_real_uniform(strategy_weights, use_abs=True, max=1.0, min=0, force=True)
-        result = np.concatenate((mutated_weights, [take_profit_ratio], [stop_loss_ratio], [trade_size]))
+        result = np.concatenate(
+            (mutated_weights, [buy_threshold], [sell_threshold], [take_profit_ratio], [stop_loss_ratio], [trade_size]))
 
     elif part_to_mutate == 2:
         mutated_take_profit_ratio = Mutation.mutate_real_uniform(np.asarray([take_profit_ratio]), use_abs=True,
                                                                  max=1.0, min=0, force=True)
-        result = np.concatenate((strategy_weights, mutated_take_profit_ratio, [stop_loss_ratio], [trade_size]))
+        result = np.concatenate((strategy_weights, [buy_threshold], [sell_threshold], mutated_take_profit_ratio,
+                                 [stop_loss_ratio], [trade_size]))
 
     elif part_to_mutate == 3:
 
         mutated_stop_loss_ratio = Mutation.mutate_real_uniform(np.asarray([stop_loss_ratio]), use_abs=True, max=1.0,
                                                                min=0, force=True)
-        result = np.concatenate((strategy_weights, [take_profit_ratio], mutated_stop_loss_ratio, [trade_size]))
+        result = np.concatenate((strategy_weights, [buy_threshold], [sell_threshold], [take_profit_ratio],
+                                 mutated_stop_loss_ratio, [trade_size]))
 
     elif part_to_mutate == 4:
         mutated_trade_size = Mutation.mutate_real_uniform(np.asarray([trade_size]), use_abs=True, max=1.0, min=0,
                                                           force=True)
-        result = np.concatenate((strategy_weights, [take_profit_ratio], [stop_loss_ratio], mutated_trade_size))
+        result = np.concatenate((strategy_weights, [buy_threshold], [sell_threshold], [take_profit_ratio],
+                                 [stop_loss_ratio], mutated_trade_size))
+    elif part_to_mutate == 5:
+        mutated_sell_threshold = Mutation.mutate_real_uniform(np.asarray([sell_threshold]), use_abs=False, max=0.0,
+                                                              min=Config.get_value('MIN_SELL_THRESHOLD'), force=True)
+        result = np.concatenate(
+            (strategy_weights, [buy_threshold], mutated_sell_threshold, [take_profit_ratio], [stop_loss_ratio],
+             [trade_size]))
+    elif part_to_mutate == 6:
+        mutated_buy_threshold = Mutation.mutate_real_uniform(np.asarray([buy_threshold]), use_abs=True,
+                                                             max=Config.get_value('MAX_BUY_THRESHOLD'),
+                                                             min=0.0, force=True)
+        result = np.concatenate(
+            (strategy_weights, mutated_buy_threshold, [sell_threshold], [take_profit_ratio], [stop_loss_ratio],
+             [trade_size]))
 
     return np.around(result, decimals=2)
